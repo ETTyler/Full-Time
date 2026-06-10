@@ -1,6 +1,7 @@
 import { auth, signIn } from "@/auth";
 import { db } from "@/lib/db";
 import { joinLeague } from "@/app/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function JoinPage({
   params,
@@ -46,7 +47,12 @@ export default async function JoinPage({
             await joinLeague(code);
           }}
         >
-          <button className="btn-primary px-5 py-2.5">Join this league</button>
+          <SubmitButton
+            pendingLabel="Joining…"
+            className="btn-primary px-5 py-2.5"
+          >
+            Join this league
+          </SubmitButton>
         </form>
       ) : (
         <form

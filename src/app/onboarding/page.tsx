@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { setUsername } from "../actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function Onboarding() {
   const session = await auth();
@@ -28,7 +29,7 @@ export default async function Onboarding() {
           className="input"
           autoFocus
         />
-        <button className="btn-primary px-4 py-2">Continue</button>
+        <SubmitButton pendingLabel="Saving…">Continue</SubmitButton>
         <p className="text-xs text-muted">
           3–24 characters. Letters, numbers and underscores.
         </p>

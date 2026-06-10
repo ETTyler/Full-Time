@@ -83,6 +83,37 @@ export async function joinLeague(code: string) {
   redirect(`/league/${code}`);
 }
 
+export async function updateTeamsPerPlayer(
+  leagueId: string,
+  teamsPerPlayer: number | null,
+) {
+  const user = await requireUser();
+  const league = await db.league.findUnique({ where: { id: leagueId } });
+
+  if (!league) return { error: "League not found." };
+  if (league.ownerId !== user.id) {
+    return { error: "Only the league creator can change this." };
+  }
+  if (league.status === "DRAFTED") {
+    return { error: "Teams are already drawn — the setting is locked." };
+  }
+  if (
+    teamsPerPlayer !== null &&
+    (!Number.isInteger(teamsPerPlayer) ||
+      teamsPerPlayer < 1 ||
+      teamsPerPlayer > 24)
+  ) {
+    return { error: "Teams per member must be between 1 and 24." };
+  }
+
+  await db.league.update({
+    where: { id: leagueId },
+    data: { teamsPerPlayer },
+  });
+
+  revalidatePath(`/league/${league.inviteCode}`);
+}
+
 export async function deleteLeague(leagueId: string) {
   const user = await requireUser();
   const league = await db.league.findUnique({ where: { id: leagueId } });

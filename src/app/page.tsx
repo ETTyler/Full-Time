@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { db } from "@/lib/db";
 import { createLeague } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function Home() {
   const session = await auth();
@@ -104,7 +105,9 @@ export default async function Home() {
               ))}
             </select>
           </label>
-          <button className="btn-primary px-4 py-2">Create league</button>
+          <SubmitButton pendingLabel="Creating league…">
+            Create league
+          </SubmitButton>
         </form>
         <p className="mt-2 text-xs text-muted">
           You’ll get an invite link to share. Once everyone’s in, run the draw

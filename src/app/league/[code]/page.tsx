@@ -6,6 +6,8 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { TeamSticker } from "@/components/TeamSticker";
 import { InviteLink } from "@/components/client";
 import { LeagueActions } from "@/components/LeagueActions";
+import { SubmitButton } from "@/components/SubmitButton";
+import { TeamsPerPlayerPicker } from "@/components/TeamsPerPlayerPicker";
 
 export default async function LeaguePage({
   params,
@@ -74,19 +76,28 @@ export default async function LeaguePage({
             the draw runs.
           </p>
           {isOwner && (
+            <div className="mt-5">
+              <TeamsPerPlayerPicker
+                leagueId={league.id}
+                value={league.teamsPerPlayer}
+                memberCount={league.members.length}
+              />
+            </div>
+          )}
+          {isOwner && (
             <form
-              className="mt-5"
+              className="mt-4"
               action={async () => {
                 "use server";
                 await runDraft(league.id);
               }}
             >
-              <button
-                className="btn-primary px-4 py-2"
+              <SubmitButton
+                pendingLabel="Drawing teams…"
                 disabled={league.members.length < 2 || overSubscribed}
               >
                 Run the draw
-              </button>
+              </SubmitButton>
               {overSubscribed ? (
                 <p className="mt-2 text-xs text-danger">
                   {league.members.length} members ×{" "}
