@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+/* Design tokens — stadium at night: deep green dark, floodlit accents */
+@theme {
+  --color-bg: #0b1410; /* page background, green-black      */
+  --color-card: #121f18; /* raised surfaces                  */
+  --color-card-2: #1a2c21; /* inset / hover surfaces         */
+  --color-fg: #e9f5ec; /* primary text                       */
+  --color-muted: #8aa593; /* secondary text                   */
+  --color-line: rgb(233 245 236 / 0.09); /* hairline borders */
+  --color-accent: #34e07a; /* floodlit pitch green             */
+  --color-accent-strong: #5beb93; /* brighter, for text on dark */
+  --color-gold: #f0b429; /* leader / trophy                    */
+  --color-danger: #ff6b5e; /* eliminated                       */
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Tailwind v4 preflight resets button cursor to default; restore pointer */
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  /* floodlight glow from the top of the stadium + faint mown stripes */
+  background-image:
+    radial-gradient(
+      70% 38% at 50% 0%,
+      rgb(52 224 122 / 0.08),
+      transparent 70%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 140px,
+      rgb(255 255 255 / 0.012) 140px 280px
+    );
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Surfaces — slight top-light gradient, like grass under floodlights */
+.card {
+  background: linear-gradient(180deg, #142319, #101c15);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+/* Primary action — floodlit green */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #06130c;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 rgb(52 224 122 / 0);
+  transition:
+    background-color 120ms ease,
+    box-shadow 200ms ease;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  box-shadow: 0 0 24px rgb(52 224 122 / 0.25);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+}
+
+/* Secondary action */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-line);
+  color: var(--color-fg);
+  background: transparent;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+.btn-ghost:hover {
+  background: rgb(233 245 236 / 0.05);
+  border-color: rgb(233 245 236 / 0.2);
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: var(--color-card);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-fg);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.input::placeholder {
+  color: var(--color-muted);
+}
+.input:focus {
+  outline: none;
+  border-color: rgb(52 224 122 / 0.5);
+  box-shadow: 0 0 0 3px rgb(52 224 122 / 0.12);
+}
+
+/* Sticky header — gradient touchline running green → gold */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgb(11 20 16 / 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-line);
+}
+.site-header::before {
+  content: "";
+  display: block;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent),
+    var(--color-gold) 60%,
+    var(--color-accent)
+  );
+}
+
+/* Pitch markings behind the landing hero — centre circle + halfway line */
+.pitch-decor {
+  position: relative;
+}
+.pitch-decor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  top: 50%;
+  height: 1px;
+  background: rgb(52 224 122 / 0.12);
+  pointer-events: none;
+}
+.pitch-decor::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 320px;
+  height: 320px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(52 224 122 / 0.14);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* Staggered fade-in for revealed team grids */
+.fade-up {
+  animation: fade-up 350ms ease both;
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
+  }
+}

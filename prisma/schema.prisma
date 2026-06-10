@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth.js (NextAuth) models ----------
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  username      String?      @unique // chosen at onboarding, shown everywhere
+  email         String?      @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+  picks         Pick[]
+  ownedLeagues  League[]     @relation("LeagueOwner")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Sweepstake domain ----------
+
+enum LeagueStatus {
+  OPEN // people can still join
+  DRAFTED // teams dealt, locked
+}
+
+model League {
+  id             String       @id @default(cuid())
+  name           String
+  inviteCode     String       @unique // short code used in invite links
+  status         LeagueStatus @default(OPEN)
+  // Teams dealt to each member. Null = split all 48 evenly.
+  teamsPerPlayer Int?
+  ownerId        String
+  owner          User         @relation("LeagueOwner", fields: [ownerId], references: [id])
+  members        Membership[]
+  picks          Pick[]
+  createdAt      DateTime     @default(now())
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  leagueId String
+  userId   String
+  joinedAt DateTime @default(now())
+  league   League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, userId])
+}
+
+// Furthest stage a team has reached. Global across all leagues,
+// updated from the admin panel as the tournament progresses.
+enum Stage {
+  GROUP // still in / went out at the group stage
+  R32 // reached the round of 32
+  R16
+  QF
+  SF
+  RUNNER_UP // lost the final
+  CHAMPION
+}
+
+model Team {
+  id         String  @id // e.g. "ENG"
+  name       String
+  flag       String // emoji
+  groupName  String // "A".."L"
+  stage      Stage   @default(GROUP)
+  eliminated Boolean @default(false)
+  picks      Pick[]
+}
+
+// One team assigned to one user within one league.
+model Pick {
+  id       String @id @default(cuid())
+  leagueId String
+  userId   String
+  teamId   String
+  league   League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team     Team   @relation(fields: [teamId], references: [id])
+
+  @@unique([leagueId, teamId]) // a team belongs to exactly one person per league
+  @@index([leagueId, userId])
+}

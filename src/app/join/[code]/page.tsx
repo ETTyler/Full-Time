@@ -1,0 +1,66 @@
+import { auth, signIn } from "@/auth";
+import { db } from "@/lib/db";
+import { joinLeague } from "@/app/actions";
+
+export default async function JoinPage({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
+  const { code } = await params;
+  const session = await auth();
+  const league = await db.league.findUnique({
+    where: { inviteCode: code },
+    include: { _count: { select: { members: true } }, owner: true },
+  });
+
+  if (!league) {
+    return (
+      <p className="py-12 text-center text-muted">
+        No league found for that invite. Check the link and try again.
+      </p>
+    );
+  }
+
+  return (
+    <section className="mx-auto max-w-md py-16 text-center">
+      <p className="text-xs font-medium uppercase tracking-widest text-muted">
+        You’re invited
+      </p>
+      <h1 className="mt-3 text-3xl font-semibold">{league.name}</h1>
+      <p className="mt-2 text-sm text-muted">
+        {league._count.members} in so far · run by{" "}
+        {league.owner.username ?? league.owner.name}
+      </p>
+
+      {league.status === "DRAFTED" ? (
+        <p className="mt-6 text-sm text-danger">
+          This league has already drawn its teams, so it’s closed to new
+          members.
+        </p>
+      ) : session?.user ? (
+        <form
+          className="mt-8"
+          action={async () => {
+            "use server";
+            await joinLeague(code);
+          }}
+        >
+          <button className="btn-primary px-5 py-2.5">Join this league</button>
+        </form>
+      ) : (
+        <form
+          className="mt-8"
+          action={async () => {
+            "use server";
+            await signIn("google", { redirectTo: `/join/${code}` });
+          }}
+        >
+          <button className="btn-primary px-5 py-2.5">
+            Sign in with Google to join
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
