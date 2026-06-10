@@ -4,6 +4,7 @@ import { auth, signIn } from "@/auth";
 import { db } from "@/lib/db";
 import { createLeague } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { ScoringExplainer } from "@/components/ScoringExplainer";
 
 export default async function Home() {
   const session = await auth();
@@ -33,6 +34,11 @@ export default async function Home() {
               Sign in with Google
             </button>
           </form>
+        </div>
+
+        <div className="relative mx-auto mt-16 max-w-2xl text-left">
+          <h2 className="mb-2 text-center font-semibold">How scoring works</h2>
+          <ScoringExplainer />
         </div>
       </section>
     );
@@ -113,6 +119,11 @@ export default async function Home() {
           You’ll get an invite link to share. Once everyone’s in, run the draw
           and teams are dealt out at random — any leftovers stay in the deck.
         </p>
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-semibold">How scoring works</h2>
+        <ScoringExplainer />
       </section>
     </div>
   );

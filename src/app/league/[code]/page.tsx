@@ -8,6 +8,7 @@ import { InviteLink } from "@/components/client";
 import { LeagueActions } from "@/components/LeagueActions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TeamsPerPlayerPicker } from "@/components/TeamsPerPlayerPicker";
+import { ScoringExplainer } from "@/components/ScoringExplainer";
 
 export default async function LeaguePage({
   params,
@@ -152,6 +153,18 @@ export default async function LeaguePage({
           </section>
         </>
       )}
+
+      <details className="group">
+        <summary className="cursor-pointer list-none text-sm font-medium text-muted transition-colors hover:text-fg">
+          <span className="mr-1 inline-block transition-transform group-open:rotate-90">
+            ›
+          </span>
+          How scoring works
+        </summary>
+        <div className="mt-3">
+          <ScoringExplainer />
+        </div>
+      </details>
     </div>
   );
 }
