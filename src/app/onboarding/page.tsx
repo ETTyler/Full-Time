@@ -13,7 +13,13 @@ export default async function Onboarding() {
       <p className="mt-2 text-sm text-muted">
         This is what everyone sees on the leaderboard for the whole tournament.
       </p>
-      <form action={setUsername} className="mt-6 space-y-3">
+      <form
+        action={async (formData) => {
+          "use server";
+          await setUsername(formData);
+        }}
+        className="mt-6 space-y-3"
+      >
         <input
           name="username"
           required

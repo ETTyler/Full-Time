@@ -76,7 +76,13 @@ export default async function Home() {
 
       <section>
         <h2 className="font-semibold">Start a league</h2>
-        <form action={createLeague} className="mt-3 max-w-md space-y-3">
+        <form
+          action={async (formData) => {
+            "use server";
+            await createLeague(formData);
+          }}
+          className="mt-3 max-w-md space-y-3"
+        >
           <input
             name="name"
             required

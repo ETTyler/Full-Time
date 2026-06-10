@@ -11,7 +11,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     session({ session, user }) {
       // Expose id + username to the app.
       session.user.id = user.id;
-      // @ts-expect-error - augmented below
       session.user.username = (user as { username?: string }).username ?? null;
       return session;
     },
