@@ -83,6 +83,42 @@ export async function joinLeague(code: string) {
   redirect(`/league/${code}`);
 }
 
+export async function deleteLeague(leagueId: string) {
+  const user = await requireUser();
+  const league = await db.league.findUnique({ where: { id: leagueId } });
+
+  if (!league) return { error: "League not found." };
+  if (league.ownerId !== user.id) {
+    return { error: "Only the league creator can delete it." };
+  }
+
+  // Memberships and picks cascade-delete with the league.
+  await db.league.delete({ where: { id: leagueId } });
+
+  revalidatePath("/");
+  redirect("/");
+}
+
+export async function leaveLeague(leagueId: string) {
+  const user = await requireUser();
+  const league = await db.league.findUnique({ where: { id: leagueId } });
+
+  if (!league) return { error: "League not found." };
+  if (league.ownerId === user.id) {
+    return { error: "The creator can’t leave — delete the league instead." };
+  }
+  if (league.status === "DRAFTED") {
+    return { error: "Teams are already drawn — you can’t leave now." };
+  }
+
+  await db.membership.deleteMany({
+    where: { leagueId, userId: user.id },
+  });
+
+  revalidatePath("/");
+  redirect("/");
+}
+
 // ---------- The draw ----------
 
 export async function runDraft(leagueId: string) {

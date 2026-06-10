@@ -5,6 +5,7 @@ import { runDraft } from "@/app/actions";
 import { Leaderboard } from "@/components/Leaderboard";
 import { TeamSticker } from "@/components/TeamSticker";
 import { InviteLink } from "@/components/client";
+import { LeagueActions } from "@/components/LeagueActions";
 
 export default async function LeaguePage({
   params,
@@ -53,7 +54,12 @@ export default async function LeaguePage({
                 : ` · ~${perPerson} teams each when drawn`)}
           </p>
         </div>
-        {league.status === "OPEN" && <InviteLink code={league.inviteCode} />}
+        <div className="flex items-center gap-2">
+          {league.status === "OPEN" && <InviteLink code={league.inviteCode} />}
+          {(isOwner || league.status === "OPEN") && (
+            <LeagueActions leagueId={league.id} isOwner={isOwner} />
+          )}
+        </div>
       </div>
 
       {league.status === "OPEN" ? (
