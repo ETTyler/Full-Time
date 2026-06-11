@@ -31,9 +31,12 @@ export default async function Home() {
               await signIn("google");
             }}
           >
-            <button className="btn-primary px-5 py-2.5">
+            <SubmitButton
+              pendingLabel="Heading to Google…"
+              className="btn-primary px-5 py-2.5"
+            >
               Sign in with Google
-            </button>
+            </SubmitButton>
           </form>
         </div>
 
@@ -117,12 +120,23 @@ export default async function Home() {
               Teams per member
             </span>
             <select name="teamsPerPlayer" defaultValue="" className="input">
-              <option value="">Split all 48 evenly</option>
+              <option value="">Biggest equal split</option>
               {[1, 2, 3, 4, 5, 6, 8].map((n) => (
                 <option key={n} value={n}>
                   {n} each
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs text-muted">Draw style</span>
+            <select name="drawMode" defaultValue="LUCKY_DIP" className="input">
+              <option value="LUCKY_DIP">
+                Lucky dip — pure shuffle, anything goes
+              </option>
+              <option value="SEEDED">
+                Seeded pots — fair spread by FIFA ranking
+              </option>
             </select>
           </label>
           <SubmitButton pendingLabel="Creating league…">
@@ -131,7 +145,8 @@ export default async function Home() {
         </form>
         <p className="mt-2 text-xs text-muted">
           You’ll get an invite link to share. Once everyone’s in, run the draw
-          and teams are dealt out at random — any leftovers stay in the deck.
+          — every member is dealt the same number of teams, and any leftovers
+          stay in the deck.
         </p>
       </section>
 

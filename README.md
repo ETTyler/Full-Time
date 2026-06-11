@@ -6,7 +6,7 @@ A sweepstake app for the 2026 World Cup. Friends sign in with Google, join a lea
 
 1. **Sign in** with Google (Auth.js v5), pick a username at onboarding.
 2. **Create a league** → you get a 6-character invite code and a `/join/{code}` link to share.
-3. **Run the draw** (league owner only). All 48 teams are shuffled and dealt round-robin — 12 people get 4 each, 8 people get 6 each, awkward numbers get a fair ±1 split. The league locks afterwards. The owner can **redraw** (re-deal everyone's teams) up until the first result is recorded — once any team progresses, is eliminated, or a score goes in, the draw is final.
+3. **Run the draw** (league owner only). Two draw styles, chosen at creation or any time before the draw: **lucky dip** (all teams shuffled and dealt round-robin — someone can land both Argentina and France) or **seeded pots** (teams sorted by FIFA ranking and dealt in pots the size of the member list, so with 12 people pot 1 is the top 12 seeds — everyone gets one team per tier, a fair spread of favourites and outsiders). Every member always receives the same number of teams: a fixed count per member, or the biggest equal split (⌊48 / members⌋ — 12 people get 4 each, 10 people get 4 each with 8 leftover teams staying in the deck). The league locks afterwards. The owner can **redraw** (re-deal everyone's teams) up until the first result is recorded — once any team progresses, is eliminated, or a score goes in, the draw is final.
 4. **Admin panel** at `/admin` (email allowlist via `ADMIN_EMAILS`) — set each team's furthest stage and tick "eliminated" as results come in. Team progress is global, so one update feeds every league. The panel also manages **fixtures**: all 72 group games are pre-seeded from the official FIFA schedule, knockout matches (73–104) are seeded as placeholders ("Winner Group C", "Winner M97"…) with their real dates and venues — assign teams and enter scores as the bracket resolves. Kickoff times are edited in UTC.
 5. **Your fixtures** on every league page — each member sees a chronological list of their teams' upcoming matches (kickoff shown in their own timezone, venue, round) with played matches collapsing into a results list.
 6. **Leaderboard** on every league page, computed from `STAGE_POINTS` in `src/lib/scoring.ts`:
@@ -21,7 +21,7 @@ A sweepstake app for the 2026 World Cup. Friends sign in with Google, join a lea
    | Runner-up | 50 |
    | Champion | 80 |
 
-   Edit one file to change the scoring — everything recomputes on render.
+   Plus **live match bonuses**, computed automatically from the fixture scores the admin enters (no extra admin work): **+2** group-stage win, **+1** group-stage draw, **+3** giant-killing (beating a team ranked 20+ FIFA places higher, any round), **+2** giant-held (the underdog holding such a team to a group-stage draw), **+5** winning the third-place match. Knockout wins on penalties (level score recorded) earn no giant-kill/bronze bonus, since the score alone can't name the winner. Edit one file (`src/lib/scoring.ts`) to change any of it — everything recomputes on render.
 
 ## Stack
 

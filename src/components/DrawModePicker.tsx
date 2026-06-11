@@ -1,25 +1,29 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { updateTeamsPerPlayer } from "@/app/actions";
+import type { DrawMode } from "@prisma/client";
+import { updateDrawMode } from "@/app/actions";
 import { Spinner } from "@/components/Spinner";
 
-const OPTIONS = [1, 2, 3, 4, 5, 6, 8];
+export const DRAW_MODE_DESCRIPTIONS: Record<DrawMode, string> = {
+  LUCKY_DIP:
+    "Pure shuffle — someone can land both Argentina and France.",
+  SEEDED:
+    "Teams are dealt in FIFA-ranking pots: everyone gets one team from the top seeds, one from the next tier, and so on.",
+};
 
 /**
- * Owner-only control on the league page: change how many teams each
- * member is dealt, any time before the draw. Saves on change.
+ * Owner-only control on the league page: choose how the draw deals
+ * teams, any time before it runs. Saves on change.
  */
-export function TeamsPerPlayerPicker({
+export function DrawModePicker({
   leagueId,
   value,
-  memberCount,
 }: {
   leagueId: string;
-  value: number | null;
-  memberCount: number;
+  value: DrawMode;
 }) {
-  const [selected, setSelected] = useState(value);
+  const [selected, setSelected] = useState<DrawMode>(value);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -33,11 +37,11 @@ export function TeamsPerPlayerPicker({
     return () => clearTimeout(t);
   }, [saved]);
 
-  const save = (next: number | null) => {
+  const save = (next: DrawMode) => {
     setSelected(next);
     setError(null);
     startTransition(async () => {
-      const result = await updateTeamsPerPlayer(leagueId, next);
+      const result = await updateDrawMode(leagueId, next);
       if (result && "error" in result) {
         setError(result.error);
         setSelected(value); // revert
@@ -50,24 +54,16 @@ export function TeamsPerPlayerPicker({
   return (
     <div>
       <label className="block">
-        <span className="mb-1 block text-xs text-muted">
-          Teams per member
-        </span>
+        <span className="mb-1 block text-xs text-muted">Draw style</span>
         <span className="flex items-center gap-2">
           <select
-            value={selected ?? ""}
+            value={selected}
             disabled={pending}
-            onChange={(e) =>
-              save(e.target.value === "" ? null : Number(e.target.value))
-            }
+            onChange={(e) => save(e.target.value as DrawMode)}
             className="input w-auto py-1.5"
           >
-            <option value="">Biggest equal split</option>
-            {OPTIONS.map((n) => (
-              <option key={n} value={n} disabled={n * memberCount > 48}>
-                {n} each ({n * memberCount} of 48 teams)
-              </option>
-            ))}
+            <option value="LUCKY_DIP">Lucky dip</option>
+            <option value="SEEDED">Seeded pots (fairer)</option>
           </select>
           <span
             className="flex items-center gap-1.5 text-xs text-muted"
@@ -86,6 +82,9 @@ export function TeamsPerPlayerPicker({
           </span>
         </span>
       </label>
+      <p className="mt-1 max-w-md text-xs text-muted">
+        {DRAW_MODE_DESCRIPTIONS[selected]}
+      </p>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
   );

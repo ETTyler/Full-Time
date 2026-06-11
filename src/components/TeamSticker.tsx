@@ -1,7 +1,13 @@
 import type { Team } from "@prisma/client";
 import { STAGE_LABELS, pointsFor } from "@/lib/scoring";
 
-export function TeamSticker({ team }: { team: Team }) {
+export function TeamSticker({
+  team,
+  bonus = 0,
+}: {
+  team: Team;
+  bonus?: number;
+}) {
   const out = team.eliminated;
   return (
     <div className={`card p-3 ${out ? "opacity-50" : "foil-edge"}`}>
@@ -18,8 +24,20 @@ export function TeamSticker({ team }: { team: Team }) {
         <span className="truncate text-muted">
           {team.groupName} · {STAGE_LABELS[team.stage]}
         </span>
-        <span className="ml-1 shrink-0 font-semibold tabular-nums text-accent">
-          {pointsFor(team.stage)}
+        <span
+          className="ml-1 shrink-0 font-semibold tabular-nums text-accent"
+          title={
+            bonus > 0
+              ? `${pointsFor(team.stage)} stage + ${bonus} bonus`
+              : undefined
+          }
+        >
+          {pointsFor(team.stage) + bonus}
+          {bonus > 0 && (
+            <span className="ml-0.5 text-[0.65rem] font-medium text-gold">
+              +{bonus}
+            </span>
+          )}
         </span>
       </div>
     </div>

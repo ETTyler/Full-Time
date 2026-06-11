@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import type { Stage, Team } from "@prisma/client";
 import { updateTeamProgress } from "@/app/actions";
 import { STAGE_LABELS, STAGE_ORDER, pointsFor } from "@/lib/scoring";
+import { Spinner } from "@/components/Spinner";
 
 export function AdminTeamRow({ team }: { team: Team }) {
   const [state, formAction, pending] = useActionState(
@@ -77,7 +78,16 @@ export function AdminTeamRow({ team }: { team: Team }) {
           justSaved ? "border-accent/40 text-accent" : ""
         }`}
       >
-        {pending ? "Saving…" : justSaved ? "Saved ✓" : "Save"}
+        {pending ? (
+          <>
+            <Spinner className="h-3 w-3" />
+            Saving…
+          </>
+        ) : justSaved ? (
+          "Saved ✓"
+        ) : (
+          "Save"
+        )}
       </button>
 
       {state && "error" in state && (

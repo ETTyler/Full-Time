@@ -10,9 +10,11 @@ type PickWithRelations = Pick & { team: Team; user: User };
 export function Leaderboard({
   picks,
   currentUserId,
+  bonusPoints = {},
 }: {
   picks: PickWithRelations[];
   currentUserId: string;
+  bonusPoints?: Record<string, number>;
 }) {
   const [openUserId, setOpenUserId] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export function Leaderboard({
       total: 0,
       picks: [],
     };
-    row.points += pointsFor(p.team.stage);
+    row.points += pointsFor(p.team.stage) + (bonusPoints[p.teamId] ?? 0);
     row.total += 1;
     if (!p.team.eliminated) row.alive += 1;
     row.picks.push(p);
@@ -124,7 +126,10 @@ export function Leaderboard({
                       className="fade-up"
                       style={{ animationDelay: `${j * 25}ms` }}
                     >
-                      <TeamSticker team={p.team} />
+                      <TeamSticker
+                        team={p.team}
+                        bonus={bonusPoints[p.teamId] ?? 0}
+                      />
                     </div>
                   ))}
               </div>

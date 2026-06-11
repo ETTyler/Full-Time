@@ -8,7 +8,9 @@ import { InviteLink } from "@/components/client";
 import { LeagueActions } from "@/components/LeagueActions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TeamsPerPlayerPicker } from "@/components/TeamsPerPlayerPicker";
+import { DrawModePicker } from "@/components/DrawModePicker";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
+import { bonusPointsFromFixtures } from "@/lib/scoring";
 import { FixtureList } from "@/components/FixtureList";
 import { SectionHeader } from "@/components/SectionHeader";
 
@@ -54,6 +56,17 @@ export default async function LeaguePage({
           orderBy: { kickoff: "asc" },
         })
       : [];
+
+  // Live bonus points (group results, giant-killings, bronze) from
+  // every played fixture — feeds the leaderboard and team stickers.
+  const playedFixtures =
+    league.status === "DRAFTED"
+      ? await db.fixture.findMany({
+          where: { homeScore: { not: null }, awayScore: { not: null } },
+          include: { homeTeam: true, awayTeam: true },
+        })
+      : [];
+  const bonusPoints = bonusPointsFromFixtures(playedFixtures);
   const perPerson =
     league.teamsPerPlayer ?? Math.floor(48 / league.members.length);
   const overSubscribed =
@@ -68,9 +81,7 @@ export default async function LeaguePage({
           <p className="mt-1 text-sm tabular-nums text-muted">
             {league.members.length} members
             {league.status !== "DRAFTED" &&
-              (league.teamsPerPlayer != null
-                ? ` · ${league.teamsPerPlayer} teams each when drawn`
-                : ` · ~${perPerson} teams each when drawn`)}
+              ` · ${perPerson} teams each when drawn`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -80,6 +91,9 @@ export default async function LeaguePage({
               leagueId={league.id}
               isOwner={isOwner}
               canRedraw={isOwner && league.status === "DRAFTED"}
+              drawMode={league.drawMode}
+              teamsPerPlayer={league.teamsPerPlayer}
+              memberCount={league.members.length}
             />
           )}
         </div>
@@ -130,12 +144,13 @@ export default async function LeaguePage({
             the draw runs.
           </p>
           {isOwner && (
-            <div className="mt-5">
+            <div className="mt-5 space-y-4">
               <TeamsPerPlayerPicker
                 leagueId={league.id}
                 value={league.teamsPerPlayer}
                 memberCount={league.members.length}
               />
+              <DrawModePicker leagueId={league.id} value={league.drawMode} />
             </div>
           )}
           {isOwner && (
@@ -160,9 +175,12 @@ export default async function LeaguePage({
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-muted">
-                  {league.teamsPerPlayer != null
-                    ? `Deals ${league.teamsPerPlayer} random teams to each member. No take-backs.`
-                    : "Deals all 48 teams out at random. No take-backs."}
+                  {league.drawMode === "SEEDED"
+                    ? `Deals ${perPerson} teams to each member from FIFA-ranking pots — a fair spread of favourites and outsiders.`
+                    : `Deals ${perPerson} random teams to each member — the same number for everyone. No take-backs.`}
+                  {48 % league.members.length !== 0 &&
+                    league.teamsPerPlayer == null &&
+                    ` ${48 - perPerson * league.members.length} leftover teams stay in the deck.`}
                 </p>
               )}
             </form>
@@ -179,6 +197,7 @@ export default async function LeaguePage({
               <Leaderboard
                 picks={league.picks}
                 currentUserId={session.user.id}
+                bonusPoints={bonusPoints}
               />
             </div>
           </section>
@@ -192,7 +211,10 @@ export default async function LeaguePage({
                   className="fade-up"
                   style={{ animationDelay: `${i * 25}ms` }}
                 >
-                  <TeamSticker team={p.team} />
+                  <TeamSticker
+                    team={p.team}
+                    bonus={bonusPoints[p.teamId] ?? 0}
+                  />
                 </div>
               ))}
             </div>

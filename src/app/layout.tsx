@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
 import { auth, signIn, signOut } from "@/auth";
+import { SubmitButton } from "@/components/SubmitButton";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -40,7 +41,12 @@ export default async function RootLayout({
                 <span className="text-sm text-muted">
                   {session.user.username ?? session.user.name}
                 </span>
-                <button className="btn-ghost px-3 py-1.5">Sign out</button>
+                <SubmitButton
+                  pendingLabel="Signing out…"
+                  className="btn-ghost px-3 py-1.5"
+                >
+                  Sign out
+                </SubmitButton>
               </form>
             ) : (
               <form
@@ -49,7 +55,12 @@ export default async function RootLayout({
                   await signIn("google");
                 }}
               >
-                <button className="btn-primary px-3 py-1.5">Sign in</button>
+                <SubmitButton
+                  pendingLabel="Signing in…"
+                  className="btn-primary px-3 py-1.5"
+                >
+                  Sign in
+                </SubmitButton>
               </form>
             )}
           </div>

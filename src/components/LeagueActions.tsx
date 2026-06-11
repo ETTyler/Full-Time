@@ -1,78 +1,160 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { DrawMode } from "@prisma/client";
 import { deleteLeague, leaveLeague, redrawLeague } from "@/app/actions";
+import { Spinner } from "@/components/Spinner";
 
 type Mode = "redraw" | "remove";
 
+const PER_OPTIONS = [1, 2, 3, 4, 5, 6, 8];
+
 /**
- * Owner/member actions for a league — redraw (owner, after the draw),
- * delete (owner) or leave (member) — each behind a two-step inline
- * confirmation instead of a browser dialog.
+ * Owner/member actions for a league — redraw (owner, after the draw,
+ * with the option to change the draw settings), delete (owner) or
+ * leave (member) — each behind a two-step inline confirmation.
  */
 export function LeagueActions({
   leagueId,
   isOwner,
   canRedraw = false,
+  drawMode = "LUCKY_DIP",
+  teamsPerPlayer = null,
+  memberCount = 2,
 }: {
   leagueId: string;
   isOwner: boolean;
   canRedraw?: boolean;
+  drawMode?: DrawMode;
+  teamsPerPlayer?: number | null;
+  memberCount?: number;
 }) {
   const [confirming, setConfirming] = useState<Mode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  if (confirming) {
-    const isRedraw = confirming === "redraw";
+  // Redraw options — start from the league's current settings.
+  const [nextMode, setNextMode] = useState<DrawMode>(drawMode);
+  const [nextPer, setNextPer] = useState<number | null>(teamsPerPlayer);
+
+  const reset = () => {
+    setConfirming(null);
+    setError(null);
+    setNextMode(drawMode);
+    setNextPer(teamsPerPlayer);
+  };
+
+  if (confirming === "redraw") {
     return (
-      <span className="flex flex-wrap items-center gap-2">
+      <span className="flex flex-wrap items-center justify-end gap-2">
+        <select
+          value={nextMode}
+          disabled={pending}
+          onChange={(e) => setNextMode(e.target.value as DrawMode)}
+          className="input w-auto py-1 text-xs"
+          aria-label="Draw style"
+        >
+          <option value="LUCKY_DIP">Lucky dip</option>
+          <option value="SEEDED">Seeded pots</option>
+        </select>
+        <select
+          value={nextPer ?? ""}
+          disabled={pending}
+          onChange={(e) =>
+            setNextPer(e.target.value === "" ? null : Number(e.target.value))
+          }
+          className="input w-auto py-1 text-xs"
+          aria-label="Teams per member"
+        >
+          <option value="">Biggest equal split</option>
+          {PER_OPTIONS.map((n) => (
+            <option key={n} value={n} disabled={n * memberCount > 48}>
+              {n} each
+            </option>
+          ))}
+        </select>
         {error ? (
-          <span className="text-xs text-danger">{error}</span>
+          <span className="w-full text-right text-xs text-danger sm:w-auto">
+            {error}
+          </span>
         ) : (
-          <span className="text-xs text-muted">
-            {isRedraw
-              ? "All teams go back in the deck and get re-dealt."
-              : isOwner
-                ? "This removes the league for everyone."
-                : "You can rejoin with the invite link while it’s open."}
+          <span className="w-full text-right text-xs text-muted sm:w-auto">
+            All teams get re-dealt.
           </span>
         )}
         <button
           disabled={pending}
           onClick={() =>
             startTransition(async () => {
-              const result = isRedraw
-                ? await redrawLeague(leagueId)
-                : isOwner
-                  ? await deleteLeague(leagueId)
-                  : await leaveLeague(leagueId);
+              const result = await redrawLeague(leagueId, {
+                drawMode: nextMode,
+                teamsPerPlayer: nextPer,
+              });
               if (result && "error" in result) {
                 setError(result.error);
               } else {
-                setConfirming(null);
-                setError(null);
+                reset();
               }
             })
           }
-          className={`btn-ghost px-3 py-1.5 text-xs ${
-            isRedraw
-              ? "border-gold/40 text-gold"
-              : "border-danger/40 text-danger"
-          }`}
+          className="btn-ghost border-gold/40 px-3 py-1.5 text-xs text-gold"
         >
-          {pending
-            ? "Working…"
-            : isRedraw
-              ? "Yes, redraw"
-              : `Yes, ${isOwner ? "delete" : "leave"}`}
+          {pending ? (
+            <>
+              <Spinner className="h-3 w-3" />
+              Redrawing…
+            </>
+          ) : (
+            "Yes, redraw"
+          )}
         </button>
         <button
           disabled={pending}
-          onClick={() => {
-            setConfirming(null);
-            setError(null);
-          }}
+          onClick={reset}
+          className="btn-ghost px-3 py-1.5 text-xs"
+        >
+          Cancel
+        </button>
+      </span>
+    );
+  }
+
+  if (confirming === "remove") {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        {error ? (
+          <span className="text-xs text-danger">{error}</span>
+        ) : (
+          <span className="text-xs text-muted">
+            {isOwner
+              ? "This removes the league for everyone."
+              : "You can rejoin with the invite link while it’s open."}
+          </span>
+        )}
+        <button
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = isOwner
+                ? await deleteLeague(leagueId)
+                : await leaveLeague(leagueId);
+              if (result && "error" in result) setError(result.error);
+            })
+          }
+          className="btn-ghost border-danger/40 px-3 py-1.5 text-xs text-danger"
+        >
+          {pending ? (
+            <>
+              <Spinner className="h-3 w-3" />
+              Working…
+            </>
+          ) : (
+            `Yes, ${isOwner ? "delete" : "leave"}`
+          )}
+        </button>
+        <button
+          disabled={pending}
+          onClick={reset}
           className="btn-ghost px-3 py-1.5 text-xs"
         >
           Cancel

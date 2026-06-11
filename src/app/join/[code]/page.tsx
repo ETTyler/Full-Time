@@ -64,9 +64,12 @@ export default async function JoinPage({
               await signIn("google", { redirectTo: `/join/${code}` });
             }}
           >
-            <button className="btn-primary px-5 py-2.5">
+            <SubmitButton
+              pendingLabel="Heading to Google…"
+              className="btn-primary px-5 py-2.5"
+            >
               Sign in with Google to join
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>

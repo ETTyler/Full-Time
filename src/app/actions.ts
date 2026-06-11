@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { customAlphabet } from "nanoid";
-import type { Stage } from "@prisma/client";
+import type { DrawMode, Stage } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
-import { runSweepstakeDraw } from "@/lib/draft";
+import { runSeededDraw, runSweepstakeDraw } from "@/lib/draft";
 import { STAGE_ORDER } from "@/lib/scoring";
 
 // Unambiguous alphabet for invite codes (no 0/O, 1/I/L).
@@ -54,12 +54,16 @@ export async function createLeague(formData: FormData) {
     return { error: "Teams per member must be between 1 and 24." };
   }
 
+  const drawMode: DrawMode =
+    formData.get("drawMode") === "SEEDED" ? "SEEDED" : "LUCKY_DIP";
+
   const league = await db.league.create({
     data: {
       name,
       inviteCode: inviteCode(),
       ownerId: user.id,
       teamsPerPlayer,
+      drawMode,
       members: { create: { userId: user.id } },
     },
   });
@@ -114,6 +118,26 @@ export async function updateTeamsPerPlayer(
   revalidatePath(`/league/${league.inviteCode}`);
 }
 
+export async function updateDrawMode(leagueId: string, drawMode: DrawMode) {
+  const user = await requireUser();
+  const league = await db.league.findUnique({ where: { id: leagueId } });
+
+  if (!league) return { error: "League not found." };
+  if (league.ownerId !== user.id) {
+    return { error: "Only the league creator can change this." };
+  }
+  if (league.status === "DRAFTED") {
+    return { error: "Teams are already drawn — the setting is locked." };
+  }
+  if (drawMode !== "LUCKY_DIP" && drawMode !== "SEEDED") {
+    return { error: "Unknown draw mode." };
+  }
+
+  await db.league.update({ where: { id: leagueId }, data: { drawMode } });
+
+  revalidatePath(`/league/${league.inviteCode}`);
+}
+
 export async function deleteLeague(leagueId: string) {
   const user = await requireUser();
   const league = await db.league.findUnique({ where: { id: leagueId } });
@@ -152,6 +176,53 @@ export async function leaveLeague(leagueId: string) {
 
 // ---------- The draw ----------
 
+/**
+ * Deals teams for a league according to its draw mode and returns the
+ * Pick rows to insert, or an error. Shared by runDraft and redrawLeague.
+ */
+async function dealTeams(league: {
+  id: string;
+  teamsPerPlayer: number | null;
+  drawMode: DrawMode;
+  members: { userId: string }[];
+}) {
+  const teams = await db.team.findMany({
+    select: { id: true, fifaRank: true },
+  });
+  if (
+    league.teamsPerPlayer != null &&
+    league.teamsPerPlayer * league.members.length > teams.length
+  ) {
+    return {
+      error:
+        `Not enough teams for ${league.members.length} members × ` +
+        `${league.teamsPerPlayer} each. Lower the count or remove members.`,
+    };
+  }
+
+  const memberIds = league.members.map((m) => m.userId);
+  const assignments =
+    league.drawMode === "SEEDED"
+      ? runSeededDraw(
+          [...teams]
+            .sort((a, b) => (a.fifaRank ?? 999) - (b.fifaRank ?? 999))
+            .map((t) => t.id),
+          memberIds,
+          league.teamsPerPlayer,
+        )
+      : runSweepstakeDraw(
+          teams.map((t) => t.id),
+          memberIds,
+          league.teamsPerPlayer,
+        );
+
+  return {
+    picks: [...assignments.entries()].flatMap(([userId, teamIds]) =>
+      teamIds.map((teamId) => ({ leagueId: league.id, userId, teamId })),
+    ),
+  };
+}
+
 export async function runDraft(leagueId: string) {
   const user = await requireUser();
   const league = await db.league.findUnique({
@@ -167,31 +238,12 @@ export async function runDraft(leagueId: string) {
     return { error: "The draw has already been run." };
   }
 
-  const teams = await db.team.findMany({ select: { id: true } });
-  if (
-    league.teamsPerPlayer != null &&
-    league.teamsPerPlayer * league.members.length > teams.length
-  ) {
-    return {
-      error:
-        `Not enough teams for ${league.members.length} members × ` +
-        `${league.teamsPerPlayer} each. Lower the count or remove members.`,
-    };
-  }
-
-  const assignments = runSweepstakeDraw(
-    teams.map((t) => t.id),
-    league.members.map((m) => m.userId),
-    league.teamsPerPlayer,
-  );
-
-  const picks = [...assignments.entries()].flatMap(([userId, teamIds]) =>
-    teamIds.map((teamId) => ({ leagueId, userId, teamId })),
-  );
+  const dealt = await dealTeams(league);
+  if ("error" in dealt) return dealt;
 
   // Atomic: either the whole draw lands or none of it does.
   await db.$transaction([
-    db.pick.createMany({ data: picks }),
+    db.pick.createMany({ data: dealt.picks }),
     db.league.update({
       where: { id: leagueId },
       data: { status: "DRAFTED" },
@@ -201,7 +253,10 @@ export async function runDraft(leagueId: string) {
   revalidatePath(`/league/${league.inviteCode}`);
 }
 
-export async function redrawLeague(leagueId: string) {
+export async function redrawLeague(
+  leagueId: string,
+  options?: { drawMode?: DrawMode; teamsPerPlayer?: number | null },
+) {
   const user = await requireUser();
   const league = await db.league.findUnique({
     where: { id: leagueId },
@@ -216,6 +271,24 @@ export async function redrawLeague(leagueId: string) {
     return { error: "Run the draw first — there’s nothing to redraw." };
   }
 
+  // Optional new settings, applied as part of the redraw.
+  const drawMode = options?.drawMode ?? league.drawMode;
+  if (drawMode !== "LUCKY_DIP" && drawMode !== "SEEDED") {
+    return { error: "Unknown draw mode." };
+  }
+  const teamsPerPlayer =
+    options?.teamsPerPlayer === undefined
+      ? league.teamsPerPlayer
+      : options.teamsPerPlayer;
+  if (
+    teamsPerPlayer !== null &&
+    (!Number.isInteger(teamsPerPlayer) ||
+      teamsPerPlayer < 1 ||
+      teamsPerPlayer > 24)
+  ) {
+    return { error: "Teams per member must be between 1 and 24." };
+  }
+
   // Fairness guard: once any result is in (a team progressed/eliminated
   // or a score recorded), the deal stands.
   const [progressed, scored] = await Promise.all([
@@ -228,32 +301,17 @@ export async function redrawLeague(leagueId: string) {
     return { error: "The tournament is underway — the draw is final." };
   }
 
-  const teams = await db.team.findMany({ select: { id: true } });
-  if (
-    league.teamsPerPlayer != null &&
-    league.teamsPerPlayer * league.members.length > teams.length
-  ) {
-    return {
-      error:
-        `Not enough teams for ${league.members.length} members × ` +
-        `${league.teamsPerPlayer} each. Lower the count or remove members.`,
-    };
-  }
+  const dealt = await dealTeams({ ...league, drawMode, teamsPerPlayer });
+  if ("error" in dealt) return dealt;
 
-  const assignments = runSweepstakeDraw(
-    teams.map((t) => t.id),
-    league.members.map((m) => m.userId),
-    league.teamsPerPlayer,
-  );
-
-  const picks = [...assignments.entries()].flatMap(([userId, teamIds]) =>
-    teamIds.map((teamId) => ({ leagueId, userId, teamId })),
-  );
-
-  // Atomic: old deal only disappears if the new one lands.
+  // Atomic: settings + old deal only change if the new deal lands.
   await db.$transaction([
+    db.league.update({
+      where: { id: leagueId },
+      data: { drawMode, teamsPerPlayer },
+    }),
     db.pick.deleteMany({ where: { leagueId } }),
-    db.pick.createMany({ data: picks }),
+    db.pick.createMany({ data: dealt.picks }),
   ]);
 
   revalidatePath(`/league/${league.inviteCode}`);

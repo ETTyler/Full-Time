@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import type { Team } from "@prisma/client";
 import { updateFixture } from "@/app/actions";
 import type { FixtureWithTeams } from "@/components/FixtureList";
+import { Spinner } from "@/components/Spinner";
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" — we store/display UTC.
 function toInputValue(d: Date) {
@@ -133,7 +134,16 @@ export function AdminFixtureRow({
           justSaved ? "border-accent/40 text-accent" : ""
         }`}
       >
-        {pending ? "Saving…" : justSaved ? "Saved ✓" : "Save"}
+        {pending ? (
+          <>
+            <Spinner className="h-3 w-3" />
+            Saving…
+          </>
+        ) : justSaved ? (
+          "Saved ✓"
+        ) : (
+          "Save"
+        )}
       </button>
 
       {state && "error" in state && (

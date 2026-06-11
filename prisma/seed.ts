@@ -3,68 +3,75 @@ import { PrismaClient, FixtureStage } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // The confirmed 12 groups for the 2026 World Cup (final draw, Dec 2025,
-// playoff slots resolved March 2026).
-const TEAMS: [id: string, name: string, flag: string, group: string][] = [
+// playoff slots resolved March 2026). fifaRank = FIFA world ranking at
+// tournament start (June 2026 release) — drives the seeded draw.
+const TEAMS: [
+  id: string,
+  name: string,
+  flag: string,
+  group: string,
+  fifaRank: number,
+][] = [
   // Group A
-  ["MEX", "Mexico", "🇲🇽", "A"],
-  ["RSA", "South Africa", "🇿🇦", "A"],
-  ["KOR", "South Korea", "🇰🇷", "A"],
-  ["CZE", "Czechia", "🇨🇿", "A"],
+  ["MEX", "Mexico", "🇲🇽", "A", 14],
+  ["RSA", "South Africa", "🇿🇦", "A", 60],
+  ["KOR", "South Korea", "🇰🇷", "A", 25],
+  ["CZE", "Czechia", "🇨🇿", "A", 40],
   // Group B
-  ["CAN", "Canada", "🇨🇦", "B"],
-  ["BIH", "Bosnia and Herzegovina", "🇧🇦", "B"],
-  ["QAT", "Qatar", "🇶🇦", "B"],
-  ["SUI", "Switzerland", "🇨🇭", "B"],
+  ["CAN", "Canada", "🇨🇦", "B", 30],
+  ["BIH", "Bosnia and Herzegovina", "🇧🇦", "B", 64],
+  ["QAT", "Qatar", "🇶🇦", "B", 57],
+  ["SUI", "Switzerland", "🇨🇭", "B", 19],
   // Group C
-  ["BRA", "Brazil", "🇧🇷", "C"],
-  ["HAI", "Haiti", "🇭🇹", "C"],
-  ["MAR", "Morocco", "🇲🇦", "C"],
-  ["SCO", "Scotland", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "C"],
+  ["BRA", "Brazil", "🇧🇷", "C", 6],
+  ["HAI", "Haiti", "🇭🇹", "C", 83],
+  ["MAR", "Morocco", "🇲🇦", "C", 7],
+  ["SCO", "Scotland", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "C", 42],
   // Group D
-  ["USA", "United States", "🇺🇸", "D"],
-  ["PAR", "Paraguay", "🇵🇾", "D"],
-  ["AUS", "Australia", "🇦🇺", "D"],
-  ["TUR", "Türkiye", "🇹🇷", "D"],
+  ["USA", "United States", "🇺🇸", "D", 17],
+  ["PAR", "Paraguay", "🇵🇾", "D", 41],
+  ["AUS", "Australia", "🇦🇺", "D", 27],
+  ["TUR", "Türkiye", "🇹🇷", "D", 22],
   // Group E
-  ["GER", "Germany", "🇩🇪", "E"],
-  ["CUW", "Curaçao", "🇨🇼", "E"],
-  ["CIV", "Ivory Coast", "🇨🇮", "E"],
-  ["ECU", "Ecuador", "🇪🇨", "E"],
+  ["GER", "Germany", "🇩🇪", "E", 10],
+  ["CUW", "Curaçao", "🇨🇼", "E", 82],
+  ["CIV", "Ivory Coast", "🇨🇮", "E", 33],
+  ["ECU", "Ecuador", "🇪🇨", "E", 23],
   // Group F
-  ["NED", "Netherlands", "🇳🇱", "F"],
-  ["JPN", "Japan", "🇯🇵", "F"],
-  ["SWE", "Sweden", "🇸🇪", "F"],
-  ["TUN", "Tunisia", "🇹🇳", "F"],
+  ["NED", "Netherlands", "🇳🇱", "F", 8],
+  ["JPN", "Japan", "🇯🇵", "F", 18],
+  ["SWE", "Sweden", "🇸🇪", "F", 38],
+  ["TUN", "Tunisia", "🇹🇳", "F", 45],
   // Group G
-  ["BEL", "Belgium", "🇧🇪", "G"],
-  ["EGY", "Egypt", "🇪🇬", "G"],
-  ["IRN", "Iran", "🇮🇷", "G"],
-  ["NZL", "New Zealand", "🇳🇿", "G"],
+  ["BEL", "Belgium", "🇧🇪", "G", 9],
+  ["EGY", "Egypt", "🇪🇬", "G", 29],
+  ["IRN", "Iran", "🇮🇷", "G", 20],
+  ["NZL", "New Zealand", "🇳🇿", "G", 85],
   // Group H
-  ["ESP", "Spain", "🇪🇸", "H"],
-  ["CPV", "Cape Verde", "🇨🇻", "H"],
-  ["KSA", "Saudi Arabia", "🇸🇦", "H"],
-  ["URU", "Uruguay", "🇺🇾", "H"],
+  ["ESP", "Spain", "🇪🇸", "H", 2],
+  ["CPV", "Cape Verde", "🇨🇻", "H", 67],
+  ["KSA", "Saudi Arabia", "🇸🇦", "H", 61],
+  ["URU", "Uruguay", "🇺🇾", "H", 16],
   // Group I
-  ["FRA", "France", "🇫🇷", "I"],
-  ["SEN", "Senegal", "🇸🇳", "I"],
-  ["IRQ", "Iraq", "🇮🇶", "I"],
-  ["NOR", "Norway", "🇳🇴", "I"],
+  ["FRA", "France", "🇫🇷", "I", 3],
+  ["SEN", "Senegal", "🇸🇳", "I", 15],
+  ["IRQ", "Iraq", "🇮🇶", "I", 56],
+  ["NOR", "Norway", "🇳🇴", "I", 31],
   // Group J
-  ["ARG", "Argentina", "🇦🇷", "J"],
-  ["ALG", "Algeria", "🇩🇿", "J"],
-  ["AUT", "Austria", "🇦🇹", "J"],
-  ["JOR", "Jordan", "🇯🇴", "J"],
+  ["ARG", "Argentina", "🇦🇷", "J", 1],
+  ["ALG", "Algeria", "🇩🇿", "J", 28],
+  ["AUT", "Austria", "🇦🇹", "J", 24],
+  ["JOR", "Jordan", "🇯🇴", "J", 63],
   // Group K
-  ["POR", "Portugal", "🇵🇹", "K"],
-  ["COD", "DR Congo", "🇨🇩", "K"],
-  ["UZB", "Uzbekistan", "🇺🇿", "K"],
-  ["COL", "Colombia", "🇨🇴", "K"],
+  ["POR", "Portugal", "🇵🇹", "K", 5],
+  ["COD", "DR Congo", "🇨🇩", "K", 46],
+  ["UZB", "Uzbekistan", "🇺🇿", "K", 50],
+  ["COL", "Colombia", "🇨🇴", "K", 13],
   // Group L
-  ["ENG", "England", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "L"],
-  ["CRO", "Croatia", "🇭🇷", "L"],
-  ["GHA", "Ghana", "🇬🇭", "L"],
-  ["PAN", "Panama", "🇵🇦", "L"],
+  ["ENG", "England", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "L", 4],
+  ["CRO", "Croatia", "🇭🇷", "L", 11],
+  ["GHA", "Ghana", "🇬🇭", "L", 73],
+  ["PAN", "Panama", "🇵🇦", "L", 34],
 ];
 
 // All 72 group-stage fixtures from the official FIFA match schedule
@@ -202,11 +209,11 @@ const KNOCKOUT_FIXTURES: [
 ];
 
 async function main() {
-  for (const [id, name, flag, groupName] of TEAMS) {
+  for (const [id, name, flag, groupName, fifaRank] of TEAMS) {
     await prisma.team.upsert({
       where: { id },
-      update: { name, flag, groupName },
-      create: { id, name, flag, groupName },
+      update: { name, flag, groupName, fifaRank },
+      create: { id, name, flag, groupName, fifaRank },
     });
   }
   console.log(`Seeded ${TEAMS.length} teams.`);
