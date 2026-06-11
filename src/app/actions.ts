@@ -185,7 +185,10 @@ async function dealTeams(league: {
   teamsPerPlayer: number | null;
   drawMode: DrawMode;
   members: { userId: string }[];
-}) {
+}): Promise<
+  | { error: string }
+  | { picks: { leagueId: string; userId: string; teamId: string }[] }
+> {
   const teams = await db.team.findMany({
     select: { id: true, fifaRank: true },
   });
@@ -223,7 +226,9 @@ async function dealTeams(league: {
   };
 }
 
-export async function runDraft(leagueId: string) {
+export async function runDraft(
+  leagueId: string,
+): Promise<{ error: string } | undefined> {
   const user = await requireUser();
   const league = await db.league.findUnique({
     where: { id: leagueId },
@@ -256,7 +261,7 @@ export async function runDraft(leagueId: string) {
 export async function redrawLeague(
   leagueId: string,
   options?: { drawMode?: DrawMode; teamsPerPlayer?: number | null },
-) {
+): Promise<{ error: string } | undefined> {
   const user = await requireUser();
   const league = await db.league.findUnique({
     where: { id: leagueId },
