@@ -10,7 +10,10 @@ export default async function Onboarding() {
 
   return (
     <section className="mx-auto max-w-md py-12">
-      <h1 className="text-2xl font-semibold">Pick a display name</h1>
+      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-accent">
+        Before kick-off
+      </p>
+      <h1 className="mt-2 text-2xl font-semibold">Pick a display name</h1>
       <p className="mt-2 text-sm text-muted">
         This is what everyone sees on the leaderboard for the whole tournament.
       </p>

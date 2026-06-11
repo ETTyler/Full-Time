@@ -71,19 +71,25 @@ export function Leaderboard({
 
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">
-                  {row.name}
+                  <span className={isYou ? "foil-underline" : ""}>
+                    {row.name}
+                  </span>
                   {isYou && (
                     <span className="ml-2 text-xs font-normal text-muted">
                       you
                     </span>
                   )}
                 </span>
-                <span className="mt-0.5 block text-xs text-muted">
+                <span className="mt-0.5 block text-xs tabular-nums text-muted">
                   {row.alive} of {row.total} still in
                 </span>
               </span>
 
-              <span className="text-right text-base font-semibold tabular-nums text-accent-strong">
+              <span
+                className={`text-right text-base font-semibold tabular-nums ${
+                  i === 0 ? "text-gold" : "text-accent-strong"
+                }`}
+              >
                 {row.points}
                 <span className="ml-1 text-xs font-normal text-muted">pts</span>
               </span>

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { createLeague } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
+import { SectionHeader } from "@/components/SectionHeader";
 
 export default async function Home() {
   const session = await auth();
@@ -13,7 +14,7 @@ export default async function Home() {
     return (
       <section className="pitch-decor py-24 text-center">
         <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-widest text-accent">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
             48 teams · 12 groups · one pot
           </p>
           <h1 className="mx-auto mt-4 max-w-xl text-4xl font-semibold leading-tight">
@@ -55,24 +56,37 @@ export default async function Home() {
   return (
     <div className="space-y-10">
       <section>
-        <h2 className="font-semibold">Your leagues</h2>
+        <SectionHeader label="Your leagues" />
         {memberships.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">
+          <p className="text-sm text-muted">
             No leagues yet. Create one below, or ask a friend for their invite
             link.
           </p>
         ) : (
-          <ul className="mt-3 space-y-2">
+          <ul className="space-y-2">
             {memberships.map(({ league }) => (
               <li key={league.id}>
                 <Link
                   href={`/league/${league.inviteCode}`}
-                  className="card flex items-center justify-between p-4 transition-colors hover:bg-card-2"
+                  className="card flex items-center justify-between gap-3 p-4 transition-colors hover:bg-card-2"
                 >
-                  <span className="text-sm font-medium">{league.name}</span>
-                  <span className="text-xs text-muted">
-                    {league._count.members} members ·{" "}
-                    {league.status === "DRAFTED" ? "drawn" : "open"}
+                  <span className="min-w-0 truncate text-sm font-medium">
+                    {league.name}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 text-xs text-muted">
+                    <span className="tabular-nums">
+                      {league._count.members}{" "}
+                      {league._count.members === 1 ? "member" : "members"}
+                    </span>
+                    {league.status === "DRAFTED" ? (
+                      <span className="rounded border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[0.62rem] font-medium uppercase tracking-wider text-gold">
+                        Drawn
+                      </span>
+                    ) : (
+                      <span className="rounded border border-accent/30 bg-accent/10 px-1.5 py-0.5 text-[0.62rem] font-medium uppercase tracking-wider text-accent">
+                        Open
+                      </span>
+                    )}
                   </span>
                 </Link>
               </li>
@@ -82,13 +96,13 @@ export default async function Home() {
       </section>
 
       <section>
-        <h2 className="font-semibold">Start a league</h2>
+        <SectionHeader label="Start a league" />
         <form
           action={async (formData) => {
             "use server";
             await createLeague(formData);
           }}
-          className="mt-3 max-w-md space-y-3"
+          className="max-w-md space-y-3"
         >
           <input
             name="name"
@@ -122,7 +136,7 @@ export default async function Home() {
       </section>
 
       <section>
-        <h2 className="mb-2 font-semibold">How scoring works</h2>
+        <SectionHeader label="How scoring works" />
         <ScoringExplainer />
       </section>
     </div>

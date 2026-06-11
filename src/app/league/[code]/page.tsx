@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { TeamsPerPlayerPicker } from "@/components/TeamsPerPlayerPicker";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
 import { FixtureList } from "@/components/FixtureList";
+import { SectionHeader } from "@/components/SectionHeader";
 
 export default async function LeaguePage({
   params,
@@ -64,7 +65,7 @@ export default async function LeaguePage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{league.name}</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-sm tabular-nums text-muted">
             {league.members.length} members
             {league.status !== "DRAFTED" &&
               (league.teamsPerPlayer != null
@@ -81,8 +82,11 @@ export default async function LeaguePage({
       </div>
 
       {league.status === "OPEN" ? (
-        <section className="card p-6">
-          <h2 className="font-semibold">Waiting for the draw</h2>
+        <section className="card relative overflow-hidden p-6">
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-gold to-accent" />
+          <h2 className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
+            Waiting for the draw
+          </h2>
           <p className="mt-2 text-sm text-muted">
             In so far:{" "}
             {league.members
@@ -133,12 +137,10 @@ export default async function LeaguePage({
       ) : (
         <>
           <section>
-            <div className="mb-2 flex items-baseline justify-between">
-              <h2 className="font-semibold">Standings</h2>
-              <span className="text-xs text-muted">
-                Select a member to see their teams
-              </span>
-            </div>
+            <SectionHeader
+              label="Standings"
+              hint="select a member to see their teams"
+            />
             <div className="card px-2 py-1 sm:px-3">
               <Leaderboard
                 picks={league.picks}
@@ -148,12 +150,7 @@ export default async function LeaguePage({
           </section>
 
           <section>
-            <h2 className="mb-2 font-semibold">
-              Your teams{" "}
-              <span className="text-sm font-normal text-muted">
-                {myPicks.length}
-              </span>
-            </h2>
+            <SectionHeader label="Your teams" hint={`${myPicks.length}`} />
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {myPicks.map((p, i) => (
                 <div
@@ -168,18 +165,11 @@ export default async function LeaguePage({
           </section>
 
           <section>
-            <h2 className="mb-2 font-semibold">
-              Your fixtures{" "}
-              <span className="text-sm font-normal text-muted">
-                times shown in your timezone
-              </span>
-            </h2>
-            <div className="card px-2 py-1 sm:px-3">
-              <FixtureList
-                fixtures={myFixtures}
-                myTeamIds={new Set(myTeamIds)}
-              />
-            </div>
+            <SectionHeader
+              label="Your fixtures"
+              hint="times in your timezone"
+            />
+            <FixtureList fixtures={myFixtures} myTeamIds={myTeamIds} />
           </section>
         </>
       )}

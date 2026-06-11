@@ -88,7 +88,10 @@ export default async function AdminPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Tournament control</h1>
+      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-gold">
+        Admin
+      </p>
+      <h1 className="mt-1 text-2xl font-semibold">Tournament control</h1>
       <div className="mt-4">
         <AdminTabs
           tabs={[

@@ -24,49 +24,52 @@ export default async function JoinPage({
   }
 
   return (
-    <section className="mx-auto max-w-md py-16 text-center">
-      <p className="text-xs font-medium uppercase tracking-widest text-muted">
-        You’re invited
-      </p>
-      <h1 className="mt-3 text-3xl font-semibold">{league.name}</h1>
-      <p className="mt-2 text-sm text-muted">
-        {league._count.members} in so far · run by{" "}
-        {league.owner.username ?? league.owner.name}
-      </p>
-
-      {league.status === "DRAFTED" ? (
-        <p className="mt-6 text-sm text-danger">
-          This league has already drawn its teams, so it’s closed to new
-          members.
+    <section className="mx-auto max-w-md py-16">
+      <div className="card relative overflow-hidden p-8 text-center">
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-accent via-gold to-accent" />
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-gold">
+          You’re invited
         </p>
-      ) : session?.user ? (
-        <form
-          className="mt-8"
-          action={async () => {
-            "use server";
-            await joinLeague(code);
-          }}
-        >
-          <SubmitButton
-            pendingLabel="Joining…"
-            className="btn-primary px-5 py-2.5"
+        <h1 className="mt-3 text-3xl font-semibold">{league.name}</h1>
+        <p className="mt-2 text-sm tabular-nums text-muted">
+          {league._count.members} in so far · run by{" "}
+          {league.owner.username ?? league.owner.name}
+        </p>
+
+        {league.status === "DRAFTED" ? (
+          <p className="mt-6 text-sm text-danger">
+            This league has already drawn its teams, so it’s closed to new
+            members.
+          </p>
+        ) : session?.user ? (
+          <form
+            className="mt-8"
+            action={async () => {
+              "use server";
+              await joinLeague(code);
+            }}
           >
-            Join this league
-          </SubmitButton>
-        </form>
-      ) : (
-        <form
-          className="mt-8"
-          action={async () => {
-            "use server";
-            await signIn("google", { redirectTo: `/join/${code}` });
-          }}
-        >
-          <button className="btn-primary px-5 py-2.5">
-            Sign in with Google to join
-          </button>
-        </form>
-      )}
+            <SubmitButton
+              pendingLabel="Joining…"
+              className="btn-primary px-5 py-2.5"
+            >
+              Join this league
+            </SubmitButton>
+          </form>
+        ) : (
+          <form
+            className="mt-8"
+            action={async () => {
+              "use server";
+              await signIn("google", { redirectTo: `/join/${code}` });
+            }}
+          >
+            <button className="btn-primary px-5 py-2.5">
+              Sign in with Google to join
+            </button>
+          </form>
+        )}
+      </div>
     </section>
   );
 }
