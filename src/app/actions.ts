@@ -201,6 +201,64 @@ export async function runDraft(leagueId: string) {
   revalidatePath(`/league/${league.inviteCode}`);
 }
 
+export async function redrawLeague(leagueId: string) {
+  const user = await requireUser();
+  const league = await db.league.findUnique({
+    where: { id: leagueId },
+    include: { members: true },
+  });
+
+  if (!league) return { error: "League not found." };
+  if (league.ownerId !== user.id) {
+    return { error: "Only the league owner can redraw." };
+  }
+  if (league.status !== "DRAFTED") {
+    return { error: "Run the draw first — there’s nothing to redraw." };
+  }
+
+  // Fairness guard: once any result is in (a team progressed/eliminated
+  // or a score recorded), the deal stands.
+  const [progressed, scored] = await Promise.all([
+    db.team.count({
+      where: { OR: [{ stage: { not: "GROUP" } }, { eliminated: true }] },
+    }),
+    db.fixture.count({ where: { homeScore: { not: null } } }),
+  ]);
+  if (progressed > 0 || scored > 0) {
+    return { error: "The tournament is underway — the draw is final." };
+  }
+
+  const teams = await db.team.findMany({ select: { id: true } });
+  if (
+    league.teamsPerPlayer != null &&
+    league.teamsPerPlayer * league.members.length > teams.length
+  ) {
+    return {
+      error:
+        `Not enough teams for ${league.members.length} members × ` +
+        `${league.teamsPerPlayer} each. Lower the count or remove members.`,
+    };
+  }
+
+  const assignments = runSweepstakeDraw(
+    teams.map((t) => t.id),
+    league.members.map((m) => m.userId),
+    league.teamsPerPlayer,
+  );
+
+  const picks = [...assignments.entries()].flatMap(([userId, teamIds]) =>
+    teamIds.map((teamId) => ({ leagueId, userId, teamId })),
+  );
+
+  // Atomic: old deal only disappears if the new one lands.
+  await db.$transaction([
+    db.pick.deleteMany({ where: { leagueId } }),
+    db.pick.createMany({ data: picks }),
+  ]);
+
+  revalidatePath(`/league/${league.inviteCode}`);
+}
+
 // ---------- Admin: tournament progress ----------
 
 export type SaveState = { ok: true; savedAt: number } | { error: string } | null;

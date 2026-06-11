@@ -76,7 +76,11 @@ export default async function LeaguePage({
         <div className="flex items-center gap-2">
           {league.status === "OPEN" && <InviteLink code={league.inviteCode} />}
           {(isOwner || league.status === "OPEN") && (
-            <LeagueActions leagueId={league.id} isOwner={isOwner} />
+            <LeagueActions
+              leagueId={league.id}
+              isOwner={isOwner}
+              canRedraw={isOwner && league.status === "DRAFTED"}
+            />
           )}
         </div>
       </div>
