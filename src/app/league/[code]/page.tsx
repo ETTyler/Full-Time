@@ -87,12 +87,42 @@ export default async function LeaguePage({
           <h2 className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
             Waiting for the draw
           </h2>
-          <p className="mt-2 text-sm text-muted">
-            In so far:{" "}
-            {league.members
-              .map((m) => m.user.username ?? m.user.name)
-              .join(", ")}
-            . Share the invite link to get everyone in — the league locks once
+
+          <ol className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+            {league.members.map((m, i) => {
+              const isOwnerRow = m.userId === league.ownerId;
+              const isYou = m.userId === session.user.id;
+              return (
+                <li
+                  key={m.id}
+                  className="flex min-w-0 items-center gap-2.5 border-b border-line py-1.5 text-sm fade-up"
+                  style={{ animationDelay: `${i * 25}ms` }}
+                >
+                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted">
+                    {i + 1}
+                  </span>
+                  <span
+                    className={`min-w-0 truncate ${
+                      isYou ? "foil-underline font-medium" : ""
+                    }`}
+                  >
+                    {m.user.username ?? m.user.name}
+                  </span>
+                  {isOwnerRow && (
+                    <span
+                      title="League owner"
+                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-[0.6rem] font-bold text-gold"
+                    >
+                      C
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+
+          <p className="mt-4 text-sm text-muted">
+            Share the invite link to get everyone in — the league locks once
             the draw runs.
           </p>
           {isOwner && (
