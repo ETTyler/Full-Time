@@ -116,19 +116,6 @@ export default async function Home() {
             className="input"
           />
           <label className="block">
-            <span className="mb-1 block text-xs text-muted">
-              Teams per member
-            </span>
-            <select name="teamsPerPlayer" defaultValue="" className="input">
-              <option value="">Biggest equal split</option>
-              {[1, 2, 3, 4, 5, 6, 8].map((n) => (
-                <option key={n} value={n}>
-                  {n} each
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
             <span className="mb-1 block text-xs text-muted">Draw style</span>
             <select name="drawMode" defaultValue="LUCKY_DIP" className="input">
               <option value="LUCKY_DIP">
