@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Full Time",
-  description: "Draw your teams. Watch them run. Win the bragging rights.",
+  description: "Create a league, invite your friends, and run a FIFA World Cup sweepstake draw.",
 };
 
 export default async function RootLayout({

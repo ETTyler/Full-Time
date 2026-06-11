@@ -102,13 +102,50 @@ enum Stage {
 }
 
 model Team {
-  id         String  @id // e.g. "ENG"
-  name       String
-  flag       String // emoji
-  groupName  String // "A".."L"
-  stage      Stage   @default(GROUP)
-  eliminated Boolean @default(false)
-  picks      Pick[]
+  id           String    @id // e.g. "ENG"
+  name         String
+  flag         String // emoji
+  groupName    String // "A".."L"
+  stage        Stage     @default(GROUP)
+  eliminated   Boolean   @default(false)
+  picks        Pick[]
+  homeFixtures Fixture[] @relation("HomeFixtures")
+  awayFixtures Fixture[] @relation("AwayFixtures")
+}
+
+// Which round a fixture belongs to (distinct from Stage, which tracks
+// how far a team got — fixtures also have a third-place match and final).
+enum FixtureStage {
+  GROUP
+  R32
+  R16
+  QF
+  SF
+  THIRD_PLACE
+  FINAL
+}
+
+// One tournament match. Group fixtures are seeded with both teams known;
+// knockout fixtures start as placeholders (homeLabel/awayLabel, e.g.
+// "Winner Group C") and get real teams assigned from the admin panel.
+model Fixture {
+  id          String       @id @default(cuid())
+  matchNumber Int          @unique // official FIFA match number 1–104
+  stage       FixtureStage
+  kickoff     DateTime
+  venue       String
+  homeTeamId  String?
+  awayTeamId  String?
+  homeLabel   String? // placeholder shown until homeTeamId is set
+  awayLabel   String?
+  homeScore   Int?
+  awayScore   Int?
+  homeTeam    Team?        @relation("HomeFixtures", fields: [homeTeamId], references: [id])
+  awayTeam    Team?        @relation("AwayFixtures", fields: [awayTeamId], references: [id])
+
+  @@index([kickoff])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
 }
 
 // One team assigned to one user within one league.

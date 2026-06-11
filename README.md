@@ -7,8 +7,9 @@ A sweepstake app for the 2026 World Cup. Friends sign in with Google, join a lea
 1. **Sign in** with Google (Auth.js v5), pick a username at onboarding.
 2. **Create a league** → you get a 6-character invite code and a `/join/{code}` link to share.
 3. **Run the draw** (league owner only). All 48 teams are shuffled and dealt round-robin — 12 people get 4 each, 8 people get 6 each, awkward numbers get a fair ±1 split. The league locks afterwards.
-4. **Admin panel** at `/admin` (email allowlist via `ADMIN_EMAILS`) — set each team's furthest stage and tick "eliminated" as results come in. Team progress is global, so one update feeds every league.
-5. **Leaderboard** on every league page, computed from `STAGE_POINTS` in `src/lib/scoring.ts`:
+4. **Admin panel** at `/admin` (email allowlist via `ADMIN_EMAILS`) — set each team's furthest stage and tick "eliminated" as results come in. Team progress is global, so one update feeds every league. The panel also manages **fixtures**: all 72 group games are pre-seeded from the official FIFA schedule, knockout matches (73–104) are seeded as placeholders ("Winner Group C", "Winner M97"…) with their real dates and venues — assign teams and enter scores as the bracket resolves. Kickoff times are edited in UTC.
+5. **Your fixtures** on every league page — each member sees a chronological list of their teams' upcoming matches (kickoff shown in their own timezone, venue, round) with played matches collapsing into a results list.
+6. **Leaderboard** on every league page, computed from `STAGE_POINTS` in `src/lib/scoring.ts`:
 
    | Stage reached | Points |
    |---|---|
@@ -48,8 +49,9 @@ as an authorised redirect URI.
 ## Project map
 
 ```
-prisma/schema.prisma      # User/League/Membership/Team/Pick + Stage enum
-prisma/seed.ts            # the confirmed 48 teams in groups A–L
+prisma/schema.prisma      # User/League/Membership/Team/Pick/Fixture + enums
+prisma/seed.ts            # the 48 teams + all 104 fixtures (FIFA schedule)
+src/lib/fixtures.ts       # fixture stage labels + helpers
 src/auth.ts               # Auth.js config (Google)
 src/lib/scoring.ts        # points table — the one file to tweak
 src/lib/draft.ts          # Fisher–Yates shuffle + round-robin deal

@@ -9,6 +9,7 @@ import { LeagueActions } from "@/components/LeagueActions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TeamsPerPlayerPicker } from "@/components/TeamsPerPlayerPicker";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
+import { FixtureList } from "@/components/FixtureList";
 
 export default async function LeaguePage({
   params,
@@ -38,6 +39,20 @@ export default async function LeaguePage({
   const myPicks = league.picks
     .filter((p) => p.userId === session.user.id)
     .sort((a, b) => a.team.groupName.localeCompare(b.team.groupName));
+  const myTeamIds = myPicks.map((p) => p.teamId);
+  const myFixtures =
+    league.status === "DRAFTED" && myTeamIds.length > 0
+      ? await db.fixture.findMany({
+          where: {
+            OR: [
+              { homeTeamId: { in: myTeamIds } },
+              { awayTeamId: { in: myTeamIds } },
+            ],
+          },
+          include: { homeTeam: true, awayTeam: true },
+          orderBy: { kickoff: "asc" },
+        })
+      : [];
   const perPerson =
     league.teamsPerPlayer ?? Math.floor(48 / league.members.length);
   const overSubscribed =
@@ -149,6 +164,21 @@ export default async function LeaguePage({
                   <TeamSticker team={p.team} />
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-2 font-semibold">
+              Your fixtures{" "}
+              <span className="text-sm font-normal text-muted">
+                times shown in your timezone
+              </span>
+            </h2>
+            <div className="card px-2 py-1 sm:px-3">
+              <FixtureList
+                fixtures={myFixtures}
+                myTeamIds={new Set(myTeamIds)}
+              />
             </div>
           </section>
         </>

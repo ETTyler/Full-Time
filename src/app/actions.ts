@@ -227,3 +227,60 @@ export async function updateTeamProgress(
   revalidatePath("/league/[code]", "page");
   return { ok: true, savedAt: Date.now() };
 }
+
+// ---------- Admin: fixtures ----------
+
+export async function updateFixture(
+  _prev: SaveState,
+  formData: FormData,
+): Promise<SaveState> {
+  const session = await auth();
+  if (!isAdmin(session?.user?.email)) return { error: "Admins only." };
+
+  const fixtureId = String(formData.get("fixtureId"));
+
+  // "" means TBD / placeholder still shown.
+  const rawHome = String(formData.get("homeTeamId") ?? "");
+  const rawAway = String(formData.get("awayTeamId") ?? "");
+  const homeTeamId = rawHome === "" ? null : rawHome;
+  const awayTeamId = rawAway === "" ? null : rawAway;
+  if (homeTeamId && awayTeamId && homeTeamId === awayTeamId) {
+    return { error: "A team can’t play itself." };
+  }
+
+  // Kickoff comes from a datetime-local input, treated as UTC.
+  const rawKickoff = String(formData.get("kickoff") ?? "");
+  const kickoff = new Date(`${rawKickoff}:00Z`);
+  if (Number.isNaN(kickoff.getTime())) {
+    return { error: "Invalid kickoff date/time." };
+  }
+
+  const venue = String(formData.get("venue") ?? "").trim().slice(0, 80);
+  if (venue.length < 2) return { error: "Venue needs 2+ characters." };
+
+  const parseScore = (field: string): number | null | { error: string } => {
+    const raw = String(formData.get(field) ?? "").trim();
+    if (raw === "") return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0 || n > 99) {
+      return { error: "Scores must be whole numbers from 0 to 99." };
+    }
+    return n;
+  };
+  const homeScore = parseScore("homeScore");
+  if (homeScore !== null && typeof homeScore === "object") return homeScore;
+  const awayScore = parseScore("awayScore");
+  if (awayScore !== null && typeof awayScore === "object") return awayScore;
+  if ((homeScore == null) !== (awayScore == null)) {
+    return { error: "Enter both scores (or neither)." };
+  }
+
+  await db.fixture.update({
+    where: { id: fixtureId },
+    data: { homeTeamId, awayTeamId, kickoff, venue, homeScore, awayScore },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/league/[code]", "page");
+  return { ok: true, savedAt: Date.now() };
+}
