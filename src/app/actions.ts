@@ -251,7 +251,7 @@ export async function runDraft(
     db.pick.createMany({ data: dealt.picks }),
     db.league.update({
       where: { id: leagueId },
-      data: { status: "DRAFTED" },
+      data: { status: "DRAFTED", draftedAt: new Date() },
     }),
   ]);
 
@@ -294,16 +294,19 @@ export async function redrawLeague(
     return { error: "Teams per member must be between 1 and 24." };
   }
 
-  // Fairness guard: once any result is in (a team progressed/eliminated
-  // or a score recorded), the deal stands.
-  const [progressed, scored] = await Promise.all([
-    db.team.count({
-      where: { OR: [{ stage: { not: "GROUP" } }, { eliminated: true }] },
-    }),
-    db.fixture.count({ where: { homeScore: { not: null } } }),
-  ]);
-  if (progressed > 0 || scored > 0) {
-    return { error: "The tournament is underway — the draw is final." };
+  // Fairness guard, relative to THIS league's draw: results that existed
+  // before the draw were already known when teams were dealt, so they
+  // don't block a redraw (late leagues stay flexible). But once a match
+  // that kicked off after the draw has a result, new information has
+  // arrived and the deal is final.
+  const draftedAt = league.draftedAt ?? league.createdAt;
+  const newResults = await db.fixture.count({
+    where: { homeScore: { not: null }, kickoff: { gt: draftedAt } },
+  });
+  if (newResults > 0) {
+    return {
+      error: "Results have come in since your draw — the deal is final.",
+    };
   }
 
   const dealt = await dealTeams({ ...league, drawMode, teamsPerPlayer });

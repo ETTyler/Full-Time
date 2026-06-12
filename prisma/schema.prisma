@@ -78,6 +78,7 @@ model League {
   // Teams dealt to each member. Null = split all 48 evenly.
   teamsPerPlayer Int?
   drawMode       DrawMode     @default(LUCKY_DIP)
+  draftedAt      DateTime? // when the draw ran — anchors the redraw fairness guard
   ownerId        String
   owner          User         @relation("LeagueOwner", fields: [ownerId], references: [id])
   members        Membership[]
