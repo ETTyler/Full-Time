@@ -81,7 +81,7 @@ function SharePanel({
       </button>
 
       {open && (
-        <div className="card absolute right-0 z-30 mt-2 w-72 p-3">
+        <div className="card absolute left-0 z-30 mt-2 w-[calc(100vw-2rem)] p-3 sm:left-auto sm:right-0 sm:w-72">
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
             {panelLabel}
           </p>
