@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { DrawMode } from "@prisma/client";
 import { deleteLeague, leaveLeague, redrawLeague } from "@/app/actions";
 import { Spinner } from "@/components/Spinner";
+import { ExitIcon, RefreshIcon, TrashIcon } from "@/components/icons";
 
 type Mode = "redraw" | "remove";
 
@@ -163,21 +164,33 @@ export function LeagueActions({
     );
   }
 
+  const removeLabel = isOwner ? "Delete league" : "Leave league";
+
   return (
     <span className="flex items-center gap-2">
       {canRedraw && (
         <button
           onClick={() => setConfirming("redraw")}
-          className="btn-ghost px-3 py-1.5 text-xs text-muted hover:text-gold"
+          aria-label="Redraw teams"
+          title="Redraw teams"
+          className="btn-ghost inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted hover:text-gold sm:px-3"
         >
-          Redraw teams
+          <RefreshIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">Redraw teams</span>
         </button>
       )}
       <button
         onClick={() => setConfirming("remove")}
-        className="btn-ghost px-3 py-1.5 text-xs text-muted hover:text-danger"
+        aria-label={removeLabel}
+        title={removeLabel}
+        className="btn-ghost inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted hover:text-danger sm:px-3"
       >
-        {isOwner ? "Delete league" : "Leave league"}
+        {isOwner ? (
+          <TrashIcon className="h-4 w-4" />
+        ) : (
+          <ExitIcon className="h-4 w-4" />
+        )}
+        <span className="hidden sm:inline">{removeLabel}</span>
       </button>
     </span>
   );
