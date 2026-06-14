@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import { auth, signIn, signOut } from "@/auth";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -70,6 +72,8 @@ export default async function RootLayout({
           </div>
         </header>
         <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
