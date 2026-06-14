@@ -27,12 +27,46 @@ function SharePanel({
   const [copied, setCopied] = useState(false);
   const [url, setUrl] = useState("");
   const [canShare, setCanShare] = useState(false);
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setUrl(`${window.location.origin}${path}`);
     setCanShare(typeof navigator !== "undefined" && !!navigator.share);
   }, [path]);
+
+  // Position the panel directly under the trigger, clamped so it always
+  // stays on screen regardless of where the button sits in the header.
+  useEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    const place = () => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const margin = 16;
+      const width = Math.min(288, window.innerWidth - margin * 2);
+      const left = Math.max(
+        margin,
+        Math.min(r.right - width, window.innerWidth - width - margin),
+      );
+      setPos({ top: r.bottom + 8, left, width });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
 
   // Close on outside click or Escape while the panel is open.
   useEffect(() => {
@@ -71,6 +105,7 @@ function SharePanel({
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -81,7 +116,16 @@ function SharePanel({
       </button>
 
       {open && (
-        <div className="card absolute left-0 z-30 mt-2 w-[calc(100vw-2rem)] p-3 sm:left-auto sm:right-0 sm:w-72">
+        <div
+          className="card z-40 p-3"
+          style={{
+            position: "fixed",
+            top: pos?.top ?? 0,
+            left: pos?.left ?? 0,
+            width: pos?.width,
+            visibility: pos ? "visible" : "hidden",
+          }}
+        >
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
             {panelLabel}
           </p>
