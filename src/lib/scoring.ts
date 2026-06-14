@@ -59,6 +59,17 @@ export const BONUS_POINTS = {
   bronze: 5, // win the third-place match
 } as const;
 
+export type BonusKind = keyof typeof BONUS_POINTS;
+
+/** Human-readable name for each bonus, used in the per-team breakdown. */
+export const BONUS_LABELS: Record<BonusKind, string> = {
+  groupWin: "Group-stage win",
+  groupDraw: "Group-stage draw",
+  giantKill: "Giant-killing",
+  giantHold: "Giant-held draw",
+  bronze: "Third-place win",
+};
+
 /** Minimum FIFA-ranking gap for a win to count as a giant-killing. */
 export const GIANT_KILL_GAP = 20;
 
@@ -70,64 +81,141 @@ type BonusFixture = {
   awayTeam: { id: string; fifaRank: number | null } | null;
 };
 
+/** A single bonus awarded to one team from one fixture. */
+type BonusEvent = { teamId: string; kind: BonusKind };
+
 /**
- * Total bonus points per team id across all played fixtures.
+ * Every bonus event across all played fixtures — the single source of
+ * truth that both the totals and the per-team breakdown derive from.
  *
  * Knockout matches that finish level (decided on penalties) award no
  * giant-kill/bronze bonus — the recorded score can't tell us the winner,
  * and the survivor's progress is already rewarded via stage points.
  */
+/** Bonus events earned in a single fixture (empty if not yet played). */
+function bonusEventsForFixture(f: BonusFixture): BonusEvent[] {
+  const events: BonusEvent[] = [];
+  const add = (teamId: string, kind: BonusKind) => {
+    events.push({ teamId, kind });
+  };
+
+  if (
+    f.homeScore == null ||
+    f.awayScore == null ||
+    !f.homeTeam ||
+    !f.awayTeam
+  ) {
+    return events;
+  }
+  const decisive = f.homeScore !== f.awayScore;
+  const winner = f.homeScore > f.awayScore ? f.homeTeam : f.awayTeam;
+  const loser = f.homeScore > f.awayScore ? f.awayTeam : f.homeTeam;
+
+  if (f.stage === "GROUP") {
+    if (decisive) {
+      add(winner.id, "groupWin");
+    } else {
+      add(f.homeTeam.id, "groupDraw");
+      add(f.awayTeam.id, "groupDraw");
+      // Giant-held: the underdog held a much stronger team to a draw.
+      // Group stage only — a level knockout score means penalties, and
+      // the survivor's reward comes via stage points instead.
+      if (f.homeTeam.fifaRank != null && f.awayTeam.fifaRank != null) {
+        const gap = f.homeTeam.fifaRank - f.awayTeam.fifaRank;
+        if (gap >= GIANT_KILL_GAP) add(f.homeTeam.id, "giantHold");
+        if (-gap >= GIANT_KILL_GAP) add(f.awayTeam.id, "giantHold");
+      }
+    }
+  }
+
+  if (
+    decisive &&
+    winner.fifaRank != null &&
+    loser.fifaRank != null &&
+    winner.fifaRank - loser.fifaRank >= GIANT_KILL_GAP
+  ) {
+    add(winner.id, "giantKill");
+  }
+
+  if (f.stage === "THIRD_PLACE" && decisive) {
+    add(winner.id, "bronze");
+  }
+
+  return events;
+}
+
+function bonusEventsFromFixtures(fixtures: BonusFixture[]): BonusEvent[] {
+  return fixtures.flatMap(bonusEventsForFixture);
+}
+
+/**
+ * Bonus points earned in a single fixture by the given team(s) — used to
+ * show points-per-game in the results list. Returns the total and the
+ * labels behind it (e.g. ["Group-stage win"]) for a tooltip. Stage points
+ * aren't included: they reward the furthest stage reached, not one match.
+ */
+export function fixtureBonusForTeams(
+  fixture: BonusFixture,
+  teamIds: Iterable<string>,
+): { points: number; labels: string[] } {
+  const ids = teamIds instanceof Set ? teamIds : new Set(teamIds);
+  let points = 0;
+  const labels: string[] = [];
+  for (const e of bonusEventsForFixture(fixture)) {
+    if (ids.has(e.teamId)) {
+      points += BONUS_POINTS[e.kind];
+      labels.push(BONUS_LABELS[e.kind]);
+    }
+  }
+  return { points, labels };
+}
+
+/**
+ * Total bonus points per team id across all played fixtures.
+ */
 export function bonusPointsFromFixtures(
   fixtures: BonusFixture[],
 ): Record<string, number> {
   const totals: Record<string, number> = {};
-  const add = (id: string, pts: number) => {
-    totals[id] = (totals[id] ?? 0) + pts;
-  };
+  for (const e of bonusEventsFromFixtures(fixtures)) {
+    totals[e.teamId] = (totals[e.teamId] ?? 0) + BONUS_POINTS[e.kind];
+  }
+  return totals;
+}
 
-  for (const f of fixtures) {
-    if (
-      f.homeScore == null ||
-      f.awayScore == null ||
-      !f.homeTeam ||
-      !f.awayTeam
-    ) {
-      continue;
-    }
-    const decisive = f.homeScore !== f.awayScore;
-    const winner = f.homeScore > f.awayScore ? f.homeTeam : f.awayTeam;
-    const loser = f.homeScore > f.awayScore ? f.awayTeam : f.homeTeam;
+/** One aggregated line in a team's bonus breakdown. */
+export type BonusLine = {
+  kind: BonusKind;
+  label: string;
+  count: number; // how many times this bonus was earned
+  points: number; // total points from this bonus (count × per-event value)
+};
 
-    if (f.stage === "GROUP") {
-      if (decisive) {
-        add(winner.id, BONUS_POINTS.groupWin);
-      } else {
-        add(f.homeTeam.id, BONUS_POINTS.groupDraw);
-        add(f.awayTeam.id, BONUS_POINTS.groupDraw);
-        // Giant-held: the underdog held a much stronger team to a draw.
-        // Group stage only — a level knockout score means penalties, and
-        // the survivor's reward comes via stage points instead.
-        if (f.homeTeam.fifaRank != null && f.awayTeam.fifaRank != null) {
-          const gap = f.homeTeam.fifaRank - f.awayTeam.fifaRank;
-          if (gap >= GIANT_KILL_GAP) add(f.homeTeam.id, BONUS_POINTS.giantHold);
-          if (-gap >= GIANT_KILL_GAP) add(f.awayTeam.id, BONUS_POINTS.giantHold);
-        }
-      }
-    }
+/**
+ * Per-team breakdown of bonus points, aggregated by kind. Lines come back
+ * in a stable order (highest total first) so the UI reads consistently.
+ */
+export function bonusBreakdownFromFixtures(
+  fixtures: BonusFixture[],
+): Record<string, BonusLine[]> {
+  const byTeam: Record<string, Map<BonusKind, BonusLine>> = {};
 
-    if (
-      decisive &&
-      winner.fifaRank != null &&
-      loser.fifaRank != null &&
-      winner.fifaRank - loser.fifaRank >= GIANT_KILL_GAP
-    ) {
-      add(winner.id, BONUS_POINTS.giantKill);
-    }
-
-    if (f.stage === "THIRD_PLACE" && decisive) {
-      add(winner.id, BONUS_POINTS.bronze);
-    }
+  for (const e of bonusEventsFromFixtures(fixtures)) {
+    const lines = (byTeam[e.teamId] ??= new Map());
+    const line = lines.get(e.kind) ?? {
+      kind: e.kind,
+      label: BONUS_LABELS[e.kind],
+      count: 0,
+      points: 0,
+    };
+    line.count += 1;
+    line.points += BONUS_POINTS[e.kind];
+    lines.set(e.kind, line);
   }
 
-  return totals;
+  const result: Record<string, BonusLine[]> = {};
+  for (const [teamId, lines] of Object.entries(byTeam)) {
+    result[teamId] = [...lines.values()].sort((a, b) => b.points - a.points);
+  }
+  return result;
 }

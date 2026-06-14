@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Pick, Team, User } from "@prisma/client";
-import { pointsFor } from "@/lib/scoring";
+import { pointsFor, type BonusLine } from "@/lib/scoring";
 import { TeamSticker } from "@/components/TeamSticker";
 
 type PickWithRelations = Pick & { team: Team; user: User };
@@ -11,10 +11,12 @@ export function Leaderboard({
   picks,
   currentUserId,
   bonusPoints = {},
+  bonusBreakdown = {},
 }: {
   picks: PickWithRelations[];
   currentUserId: string;
   bonusPoints?: Record<string, number>;
+  bonusBreakdown?: Record<string, BonusLine[]>;
 }) {
   const [openUserId, setOpenUserId] = useState<string | null>(null);
 
@@ -115,7 +117,7 @@ export function Leaderboard({
             </button>
 
             {isOpen && (
-              <div className="grid grid-cols-2 gap-2 px-1 pb-4 pt-1 sm:grid-cols-3 sm:px-2">
+              <div className="grid grid-cols-2 items-start gap-2 px-1 pb-4 pt-1 sm:grid-cols-3 sm:px-2">
                 {[...row.picks]
                   .sort((a, b) =>
                     a.team.groupName.localeCompare(b.team.groupName),
@@ -129,6 +131,7 @@ export function Leaderboard({
                       <TeamSticker
                         team={p.team}
                         bonus={bonusPoints[p.teamId] ?? 0}
+                        breakdown={bonusBreakdown[p.teamId] ?? []}
                       />
                     </div>
                   ))}

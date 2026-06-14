@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Fixture, Team } from "@prisma/client";
 import { FIXTURE_STAGE_LABELS, isPlayed } from "@/lib/fixtures";
+import { fixtureBonusForTeams } from "@/lib/scoring";
 
 export type FixtureWithTeams = Fixture & {
   homeTeam: Team | null;
@@ -192,6 +193,9 @@ function FixtureRow({
 }) {
   const played = isPlayed(fixture);
   const outcome = outcomeFor(fixture, myTeamIds);
+  const bonus = played
+    ? fixtureBonusForTeams(fixture, myTeamIds)
+    : { points: 0, labels: [] };
 
   return (
     <li
@@ -228,6 +232,14 @@ function FixtureRow({
             className={`inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border text-[0.62rem] font-bold ${OUTCOME_CHIP[outcome]}`}
           >
             {outcome}
+          </span>
+        )}
+        {bonus.points > 0 && (
+          <span
+            title={`Points this game: ${bonus.labels.join(", ")}`}
+            className="shrink-0 rounded bg-gold/10 px-1.5 py-0.5 text-[0.62rem] font-semibold tabular-nums text-gold"
+          >
+            +{bonus.points}
           </span>
         )}
         <StageChip fixture={fixture} />

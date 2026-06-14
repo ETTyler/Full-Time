@@ -4,13 +4,16 @@ import { db } from "@/lib/db";
 import { runDraft } from "@/app/actions";
 import { Leaderboard } from "@/components/Leaderboard";
 import { TeamSticker } from "@/components/TeamSticker";
-import { InviteLink } from "@/components/client";
+import { InviteLink, ShareStandingsLink } from "@/components/client";
 import { LeagueActions } from "@/components/LeagueActions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TeamsPerPlayerPicker } from "@/components/TeamsPerPlayerPicker";
 import { DrawModePicker } from "@/components/DrawModePicker";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
-import { bonusPointsFromFixtures } from "@/lib/scoring";
+import {
+  bonusPointsFromFixtures,
+  bonusBreakdownFromFixtures,
+} from "@/lib/scoring";
 import { FixtureList } from "@/components/FixtureList";
 import { SectionHeader } from "@/components/SectionHeader";
 
@@ -67,6 +70,7 @@ export default async function LeaguePage({
         })
       : [];
   const bonusPoints = bonusPointsFromFixtures(playedFixtures);
+  const bonusBreakdown = bonusBreakdownFromFixtures(playedFixtures);
   const perPerson =
     league.teamsPerPlayer ?? Math.floor(48 / league.members.length);
   const overSubscribed =
@@ -86,6 +90,9 @@ export default async function LeaguePage({
         </div>
         <div className="flex items-center gap-2">
           {league.status === "OPEN" && <InviteLink code={league.inviteCode} />}
+          {league.status === "DRAFTED" && (
+            <ShareStandingsLink code={league.inviteCode} />
+          )}
           {(isOwner || league.status === "OPEN") && (
             <LeagueActions
               leagueId={league.id}
@@ -198,13 +205,14 @@ export default async function LeaguePage({
                 picks={league.picks}
                 currentUserId={session.user.id}
                 bonusPoints={bonusPoints}
+                bonusBreakdown={bonusBreakdown}
               />
             </div>
           </section>
 
           <section>
             <SectionHeader label="Your teams" hint={`${myPicks.length}`} />
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 items-start gap-2 sm:grid-cols-3">
               {myPicks.map((p, i) => (
                 <div
                   key={p.id}
@@ -214,6 +222,7 @@ export default async function LeaguePage({
                   <TeamSticker
                     team={p.team}
                     bonus={bonusPoints[p.teamId] ?? 0}
+                    breakdown={bonusBreakdown[p.teamId] ?? []}
                   />
                 </div>
               ))}
