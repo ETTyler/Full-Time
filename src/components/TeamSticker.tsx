@@ -47,16 +47,36 @@ export function TeamSticker({
         )}
       </div>
       <div className="mt-2 truncate text-sm font-medium">{team.name}</div>
-      <div className="mt-1 flex items-center justify-between text-xs">
+      <div className="mt-1 flex items-center justify-between gap-1 text-xs">
         <span className="truncate text-muted">
           {team.groupName} · {STAGE_LABELS[team.stage]}
         </span>
-        <span className="ml-1 shrink-0 font-semibold tabular-nums text-accent">
-          {total}
-          {bonus > 0 && (
-            <span className="ml-0.5 text-[0.65rem] font-medium text-gold">
-              +{bonus}
-            </span>
+        <span className="flex shrink-0 items-center gap-1">
+          <span className="font-semibold tabular-nums text-accent">
+            {total}
+            {bonus > 0 && (
+              <span className="ml-0.5 text-[0.65rem] font-medium text-gold">
+                +{bonus}
+              </span>
+            )}
+          </span>
+          {hasDetail && (
+            <svg
+              viewBox="0 0 16 16"
+              aria-hidden
+              className={`h-3.5 w-3.5 text-muted transition-transform ${
+                open ? "rotate-180" : ""
+              }`}
+            >
+              <path
+                d="M4 6l4 4 4-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           )}
         </span>
       </div>
