@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { db } from "@/lib/db";
 import { createLeague } from "./actions";
+import { isAdmin } from "@/lib/admin";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SlidersIcon } from "@/components/icons";
 
 export default async function Home() {
   const session = await auth();
@@ -58,6 +60,18 @@ export default async function Home() {
 
   return (
     <div className="space-y-10">
+      {isAdmin(session.user.email) && (
+        <div className="flex justify-end">
+          <Link
+            href="/admin"
+            className="btn-ghost inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted hover:text-gold"
+          >
+            <SlidersIcon className="h-4 w-4" />
+            Admin panel
+          </Link>
+        </div>
+      )}
+
       <section>
         <SectionHeader label="Your leagues" />
         {memberships.length === 0 ? (
