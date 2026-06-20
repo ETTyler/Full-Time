@@ -11,7 +11,11 @@ const BONUSES: { points: number; label: string }[] = [
   { points: BONUS_POINTS.groupDraw, label: "group-stage draw" },
   {
     points: BONUS_POINTS.giantKill,
-    label: `giant-killing — beating a team ranked ${GIANT_KILL_GAP}+ FIFA places higher`,
+    label: `giant-killing — beating a team ranked ${GIANT_KILL_GAP}+ FIFA places higher (group stage)`,
+  },
+  {
+    points: BONUS_POINTS.giantKillKo,
+    label: `giant-killing in a knockout match — worth more`,
   },
   {
     points: BONUS_POINTS.giantHold,

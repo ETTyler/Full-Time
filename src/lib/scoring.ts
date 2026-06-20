@@ -54,7 +54,8 @@ export function pointsFor(stage: Stage): number {
 export const BONUS_POINTS = {
   groupWin: 2, // win a group-stage match
   groupDraw: 1, // draw a group-stage match
-  giantKill: 3, // beat a team ranked GIANT_KILL_GAP+ FIFA places higher
+  giantKill: 3, // beat a team ranked GIANT_KILL_GAP+ FIFA places higher (group stage)
+  giantKillKo: 5, // same, but in a knockout match — worth more
   giantHold: 2, // hold such a team to a draw (group stage only)
   bronze: 5, // win the third-place match
 } as const;
@@ -66,6 +67,7 @@ export const BONUS_LABELS: Record<BonusKind, string> = {
   groupWin: "Group-stage win",
   groupDraw: "Group-stage draw",
   giantKill: "Giant-killing",
+  giantKillKo: "Giant-killing (knockout)",
   giantHold: "Giant-held draw",
   bronze: "Third-place win",
 };
@@ -134,7 +136,8 @@ function bonusEventsForFixture(f: BonusFixture): BonusEvent[] {
     loser.fifaRank != null &&
     winner.fifaRank - loser.fifaRank >= GIANT_KILL_GAP
   ) {
-    add(winner.id, "giantKill");
+    // Knockout giant-killings are worth more than group-stage ones.
+    add(winner.id, f.stage === "GROUP" ? "giantKill" : "giantKillKo");
   }
 
   if (f.stage === "THIRD_PLACE" && decisive) {
