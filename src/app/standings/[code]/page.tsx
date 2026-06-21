@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { Leaderboard } from "@/components/Leaderboard";
 import { ScoringExplainer } from "@/components/ScoringExplainer";
+import { GroupTables } from "@/components/GroupTables";
+import { groupTablesFromFixtures } from "@/lib/standings";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   bonusPointsFromFixtures,
@@ -58,6 +60,9 @@ export default async function StandingsPage({
       : [];
   const bonusPoints = bonusPointsFromFixtures(playedFixtures);
   const bonusBreakdown = bonusBreakdownFromFixtures(playedFixtures);
+  const allTeams =
+    league.status === "DRAFTED" ? await db.team.findMany() : [];
+  const groupTables = groupTablesFromFixtures(allTeams, playedFixtures);
 
   return (
     <div className="space-y-8">
@@ -88,6 +93,11 @@ export default async function StandingsPage({
                 bonusBreakdown={bonusBreakdown}
               />
             </div>
+          </section>
+
+          <section>
+            <SectionHeader label="Group tables" hint="group stage" />
+            <GroupTables tables={groupTables} />
           </section>
 
           <details className="group">

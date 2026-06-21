@@ -15,6 +15,8 @@ import {
   bonusBreakdownFromFixtures,
 } from "@/lib/scoring";
 import { FixtureList } from "@/components/FixtureList";
+import { GroupTables } from "@/components/GroupTables";
+import { groupTablesFromFixtures } from "@/lib/standings";
 import { SectionHeader } from "@/components/SectionHeader";
 
 export default async function LeaguePage({
@@ -71,6 +73,12 @@ export default async function LeaguePage({
       : [];
   const bonusPoints = bonusPointsFromFixtures(playedFixtures);
   const bonusBreakdown = bonusBreakdownFromFixtures(playedFixtures);
+
+  // Real-world group tables — every team seeds its group; played group
+  // fixtures fill in the results. Reuses the fixtures fetched above.
+  const allTeams =
+    league.status === "DRAFTED" ? await db.team.findMany() : [];
+  const groupTables = groupTablesFromFixtures(allTeams, playedFixtures);
   const perPerson =
     league.teamsPerPlayer ?? Math.floor(48 / league.members.length);
   const overSubscribed =
@@ -227,6 +235,14 @@ export default async function LeaguePage({
                 </div>
               ))}
             </div>
+          </section>
+
+          <section>
+            <SectionHeader
+              label="Group tables"
+              hint="will your teams survive?"
+            />
+            <GroupTables tables={groupTables} ownedTeamIds={myTeamIds} />
           </section>
 
           <section>
