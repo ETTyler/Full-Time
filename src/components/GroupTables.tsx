@@ -10,11 +10,69 @@ function qualLeftEdge(pos: number): string {
   return "border-l-2 border-transparent";
 }
 
-function Stat({ children }: { children: ReactNode }) {
+// Shared column widths so the header labels line up over every row's numbers.
+// W/D/L and GF:GA are desktop-only — mobile keeps it simple: Pl · GD · Pts.
+const COL = {
+  pos: "w-3.5",
+  pl: "w-5",
+  wdl: "w-4",
+  gfga: "w-11",
+  gd: "w-7",
+  pts: "w-6",
+} as const;
+
+const WIDE = "hidden sm:block"; // columns shown only from the sm breakpoint up
+
+/** A right-aligned, fixed-width cell — header or number share the same widths. */
+function Cell({
+  width,
+  wide,
+  header,
+  children,
+}: {
+  width: string;
+  wide?: boolean;
+  header?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <span className="hidden w-[3.4rem] shrink-0 text-right tabular-nums text-muted sm:inline">
+    <span
+      className={`${width} shrink-0 text-right tabular-nums ${
+        wide ? WIDE : ""
+      } ${header ? "text-[0.6rem] font-medium uppercase tracking-wider" : "text-xs"} text-muted`}
+    >
       {children}
     </span>
+  );
+}
+
+function HeaderRow() {
+  return (
+    <div className="flex items-center gap-x-1.5 border-l-2 border-transparent pb-1 pl-1.5">
+      <span className={`${COL.pos} shrink-0`} />
+      <span className="min-w-0 flex-1" />
+      <Cell width={COL.pl} header>
+        Pl
+      </Cell>
+      <Cell width={COL.wdl} wide header>
+        W
+      </Cell>
+      <Cell width={COL.wdl} wide header>
+        D
+      </Cell>
+      <Cell width={COL.wdl} wide header>
+        L
+      </Cell>
+      <Cell width={COL.gfga} wide header>
+        GF:GA
+      </Cell>
+      <Cell width={COL.gd} header>
+        GD
+      </Cell>
+      <Cell width={COL.pts} header>
+        Pts
+      </Cell>
+    </div>
   );
 }
 
@@ -39,9 +97,11 @@ function Row({
 
   return (
     <div
-      className={`flex items-center gap-2 py-1.5 pl-1.5 ${qualLeftEdge(pos)} ${divider}`}
+      className={`flex items-center gap-x-1.5 py-1.5 pl-1.5 ${qualLeftEdge(pos)} ${divider}`}
     >
-      <span className="w-3.5 shrink-0 text-right text-xs tabular-nums text-muted">
+      <span
+        className={`${COL.pos} shrink-0 text-right text-xs tabular-nums text-muted`}
+      >
         {pos}
       </span>
       <span
@@ -64,16 +124,23 @@ function Row({
         )}
       </span>
 
-      <Stat>
-        {row.played} {row.won} {row.drawn} {row.lost}
-      </Stat>
-      <Stat>
+      <Cell width={COL.pl}>{row.played}</Cell>
+      <Cell width={COL.wdl} wide>
+        {row.won}
+      </Cell>
+      <Cell width={COL.wdl} wide>
+        {row.drawn}
+      </Cell>
+      <Cell width={COL.wdl} wide>
+        {row.lost}
+      </Cell>
+      <Cell width={COL.gfga} wide>
         {row.gf}:{row.ga}
-      </Stat>
-      <span className="w-7 shrink-0 text-right text-xs tabular-nums text-muted">
-        {row.gd > 0 ? `+${row.gd}` : row.gd}
-      </span>
-      <span className="w-5 shrink-0 text-right text-sm font-semibold tabular-nums text-gold">
+      </Cell>
+      <Cell width={COL.gd}>{row.gd > 0 ? `+${row.gd}` : row.gd}</Cell>
+      <span
+        className={`${COL.pts} shrink-0 text-right text-sm font-semibold tabular-nums text-gold`}
+      >
         {row.points}
       </span>
     </div>
@@ -89,15 +156,8 @@ function GroupCard({
 }) {
   return (
     <div className="card px-3 pb-2.5 pt-2.5">
-      <div className="mb-1.5 flex items-baseline justify-between">
-        <span className="text-sm font-medium">Group {table.name}</span>
-        <span className="hidden text-[0.6rem] uppercase tracking-wider text-muted sm:inline">
-          P W D L · GF:GA · GD · Pts
-        </span>
-        <span className="text-[0.6rem] uppercase tracking-wider text-muted sm:hidden">
-          GD · Pts
-        </span>
-      </div>
+      <div className="mb-1 text-sm font-medium">Group {table.name}</div>
+      <HeaderRow />
       {table.rows.map((row, i) => (
         <Row
           key={row.team.id}
@@ -124,8 +184,7 @@ export function GroupTables({
   const [showAll, setShowAll] = useState(!hasOwned);
 
   const yourGroups = useMemo(
-    () =>
-      tables.filter((t) => t.rows.some((r) => ownedIds.has(r.team.id))),
+    () => tables.filter((t) => t.rows.some((r) => ownedIds.has(r.team.id))),
     [tables, ownedIds],
   );
 
