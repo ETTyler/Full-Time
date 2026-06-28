@@ -5,6 +5,9 @@ import { ScoringExplainer } from "@/components/ScoringExplainer";
 import { GroupTables } from "@/components/GroupTables";
 import { groupTablesFromFixtures } from "@/lib/standings";
 import { SectionHeader } from "@/components/SectionHeader";
+import { Tabs } from "@/components/Tabs";
+import { Bracket } from "@/components/Bracket";
+import { getTournamentStage } from "@/lib/tournament";
 import {
   bonusPointsFromFixtures,
   bonusBreakdownFromFixtures,
@@ -63,6 +66,17 @@ export default async function StandingsPage({
   const allTeams =
     league.status === "DRAFTED" ? await db.team.findMany() : [];
   const groupTables = groupTablesFromFixtures(allTeams, playedFixtures);
+  const knockoutFixtures =
+    league.status === "DRAFTED"
+      ? await db.fixture.findMany({
+          where: {
+            stage: { in: ["R32", "R16", "QF", "SF", "THIRD_PLACE", "FINAL"] },
+          },
+          include: { homeTeam: true, awayTeam: true },
+          orderBy: { matchNumber: "asc" },
+        })
+      : [];
+  const tournamentStage = await getTournamentStage();
 
   return (
     <div className="space-y-8">
@@ -96,8 +110,19 @@ export default async function StandingsPage({
           </section>
 
           <section>
-            <SectionHeader label="Group tables" hint="group stage" />
-            <GroupTables tables={groupTables} />
+            <Tabs
+              defaultIndex={tournamentStage === "KNOCKOUT" ? 1 : 0}
+              tabs={[
+                {
+                  label: "Group tables",
+                  content: <GroupTables tables={groupTables} />,
+                },
+                {
+                  label: "Bracket",
+                  content: <Bracket fixtures={knockoutFixtures} myTeams={[]} />,
+                },
+              ]}
+            />
           </section>
 
           <details className="group">

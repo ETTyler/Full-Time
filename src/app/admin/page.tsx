@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/admin";
 import { AdminTeamRow } from "@/components/AdminTeamRow";
 import { AdminFixtureRow } from "@/components/AdminFixtureRow";
 import { AdminTabs } from "@/components/AdminTabs";
+import { StagePicker } from "@/components/StagePicker";
+import { getTournamentStage } from "@/lib/tournament";
 import {
   FIXTURE_STAGE_LABELS,
   FIXTURE_STAGE_ORDER,
@@ -15,7 +17,7 @@ export default async function AdminPage() {
   const session = await auth();
   if (!isAdmin(session?.user?.email)) redirect("/");
 
-  const [teams, fixtures] = await Promise.all([
+  const [teams, fixtures, tournamentStage] = await Promise.all([
     db.team.findMany({
       orderBy: [{ groupName: "asc" }, { name: "asc" }],
     }),
@@ -23,12 +25,16 @@ export default async function AdminPage() {
       include: { homeTeam: true, awayTeam: true },
       orderBy: { kickoff: "asc" },
     }),
+    getTournamentStage(),
   ]);
 
   const byStage = FIXTURE_STAGE_ORDER.map((stage) => ({
     stage,
     fixtures: fixtures.filter((f) => f.stage === stage),
   })).filter((s) => s.fixtures.length > 0);
+
+  const activeTeams = teams.filter((t) => !t.eliminated);
+  const eliminatedTeams = teams.filter((t) => t.eliminated);
 
   const teamsTab = (
     <section>
@@ -37,10 +43,28 @@ export default async function AdminPage() {
         once they’re out. Every leaderboard updates instantly.
       </p>
       <div className="mt-4 divide-y divide-line">
-        {teams.map((team) => (
+        {activeTeams.map((team) => (
           <AdminTeamRow key={team.id} team={team} />
         ))}
       </div>
+      {eliminatedTeams.length > 0 && (
+        <>
+          <div className="mb-1 mt-6 flex items-center gap-3">
+            <span className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
+              Eliminated
+            </span>
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-xs tabular-nums text-muted">
+              {eliminatedTeams.length}
+            </span>
+          </div>
+          <div className="divide-y divide-line opacity-60">
+            {eliminatedTeams.map((team) => (
+              <AdminTeamRow key={team.id} team={team} />
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 
@@ -133,6 +157,9 @@ export default async function AdminPage() {
         Admin
       </p>
       <h1 className="mt-1 text-2xl font-semibold">Tournament control</h1>
+      <div className="mt-4">
+        <StagePicker value={tournamentStage} />
+      </div>
       <div className="mt-4">
         <AdminTabs
           tabs={[

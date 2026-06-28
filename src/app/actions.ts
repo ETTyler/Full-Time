@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { customAlphabet } from "nanoid";
-import type { DrawMode, Stage } from "@prisma/client";
+import type { DrawMode, Stage, TournamentStage } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
@@ -323,6 +323,28 @@ export async function redrawLeague(
   ]);
 
   revalidatePath(`/league/${league.inviteCode}`);
+}
+
+// ---------- Admin: tournament stage ----------
+
+export async function setTournamentStage(
+  stage: TournamentStage,
+): Promise<{ error: string } | undefined> {
+  const session = await auth();
+  if (!isAdmin(session?.user?.email)) return { error: "Admins only." };
+  if (stage !== "GROUP" && stage !== "KNOCKOUT") {
+    return { error: "Unknown stage." };
+  }
+
+  await db.appConfig.upsert({
+    where: { id: "global" },
+    update: { stage },
+    create: { id: "global", stage },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/league/[code]", "page");
+  revalidatePath("/standings/[code]", "page");
 }
 
 // ---------- Admin: tournament progress ----------

@@ -18,6 +18,9 @@ import { FixtureList } from "@/components/FixtureList";
 import { GroupTables } from "@/components/GroupTables";
 import { groupTablesFromFixtures } from "@/lib/standings";
 import { SectionHeader } from "@/components/SectionHeader";
+import { Tabs } from "@/components/Tabs";
+import { Bracket } from "@/components/Bracket";
+import { getTournamentStage } from "@/lib/tournament";
 
 export default async function LeaguePage({
   params,
@@ -46,7 +49,12 @@ export default async function LeaguePage({
   const isOwner = league.ownerId === session.user.id;
   const myPicks = league.picks
     .filter((p) => p.userId === session.user.id)
-    .sort((a, b) => a.team.groupName.localeCompare(b.team.groupName));
+    .sort(
+      (a, b) =>
+        // Knocked-out teams sink to the bottom; alive teams stay grouped.
+        Number(a.team.eliminated) - Number(b.team.eliminated) ||
+        a.team.groupName.localeCompare(b.team.groupName),
+    );
   const myTeamIds = myPicks.map((p) => p.teamId);
   const myFixtures =
     league.status === "DRAFTED" && myTeamIds.length > 0
@@ -79,6 +87,19 @@ export default async function LeaguePage({
   const allTeams =
     league.status === "DRAFTED" ? await db.team.findMany() : [];
   const groupTables = groupTablesFromFixtures(allTeams, playedFixtures);
+
+  // Knockout fixtures (placeholders + assigned teams) power the bracket view.
+  const knockoutFixtures =
+    league.status === "DRAFTED"
+      ? await db.fixture.findMany({
+          where: {
+            stage: { in: ["R32", "R16", "QF", "SF", "THIRD_PLACE", "FINAL"] },
+          },
+          include: { homeTeam: true, awayTeam: true },
+          orderBy: { matchNumber: "asc" },
+        })
+      : [];
+  const tournamentStage = await getTournamentStage();
   const perPerson =
     league.teamsPerPlayer ?? Math.floor(48 / league.members.length);
   const overSubscribed =
@@ -238,11 +259,29 @@ export default async function LeaguePage({
           </section>
 
           <section>
-            <SectionHeader
-              label="Group tables"
-              hint="will your teams survive?"
+            <Tabs
+              defaultIndex={tournamentStage === "KNOCKOUT" ? 1 : 0}
+              tabs={[
+                {
+                  label: "Group tables",
+                  content: (
+                    <GroupTables
+                      tables={groupTables}
+                      ownedTeamIds={myTeamIds}
+                    />
+                  ),
+                },
+                {
+                  label: "Bracket",
+                  content: (
+                    <Bracket
+                      fixtures={knockoutFixtures}
+                      myTeams={myPicks.map((p) => p.team)}
+                    />
+                  ),
+                },
+              ]}
             />
-            <GroupTables tables={groupTables} ownedTeamIds={myTeamIds} />
           </section>
 
           <section>

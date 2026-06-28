@@ -119,8 +119,11 @@ export function Leaderboard({
             {isOpen && (
               <div className="grid grid-cols-2 items-start gap-2 px-1 pb-4 pt-1 sm:grid-cols-3 sm:px-2">
                 {[...row.picks]
-                  .sort((a, b) =>
-                    a.team.groupName.localeCompare(b.team.groupName),
+                  .sort(
+                    (a, b) =>
+                      // Knocked-out teams sink to the bottom, like elsewhere.
+                      Number(a.team.eliminated) - Number(b.team.eliminated) ||
+                      a.team.groupName.localeCompare(b.team.groupName),
                   )
                   .map((p, j) => (
                     <div

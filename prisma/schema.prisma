@@ -70,6 +70,19 @@ enum DrawMode {
   SEEDED // dealt in FIFA-ranking pots so everyone gets a fair spread
 }
 
+// Global tournament phase, set from the admin panel. Drives which view
+// (group tables vs knockout bracket) members see by default.
+enum TournamentStage {
+  GROUP
+  KNOCKOUT
+}
+
+// Singleton app-wide config — the row id is always "global".
+model AppConfig {
+  id    String          @id @default("global")
+  stage TournamentStage @default(GROUP)
+}
+
 model League {
   id             String       @id @default(cuid())
   name           String

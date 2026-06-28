@@ -66,11 +66,15 @@ export function AdminFixtureRow({
       className="input w-40 py-1"
     >
       <option value="">{placeholder ?? "TBD"}</option>
-      {teams.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.flag} {t.name}
-        </option>
-      ))}
+      {teams
+        // Hide eliminated teams, but keep the one already picked here so the
+        // current selection still shows (e.g. the loser of a played tie).
+        .filter((t) => !t.eliminated || t.id === value)
+        .map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.flag} {t.name}
+          </option>
+        ))}
     </select>
   );
 
